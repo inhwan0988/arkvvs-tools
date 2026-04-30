@@ -1,9 +1,18 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function BannedPage() {
+  return (
+    <Suspense fallback={null}>
+      <BannedContent />
+    </Suspense>
+  );
+}
+
+function BannedContent() {
   const router = useRouter();
   const params = useSearchParams();
   const reason = params.get("reason");
@@ -31,7 +40,9 @@ export default function BannedPage() {
           <>
             <h1 className="text-xl font-bold text-ink mb-2">DB 초기화가 필요해요</h1>
             <p className="text-sm text-mute leading-relaxed mb-6">
-              Supabase SQL Editor 에서 <code className="px-1.5 py-0.5 rounded bg-chip">supabase/schema.sql</code> 을 먼저 실행해주세요.
+              Supabase SQL Editor 에서{" "}
+              <code className="px-1.5 py-0.5 rounded bg-chip">supabase/schema.sql</code>{" "}
+              을 먼저 실행해주세요.
             </p>
           </>
         ) : (
