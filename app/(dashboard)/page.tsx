@@ -10,7 +10,7 @@ export default function DashboardHome() {
   const grouped = getToolsByCategory();
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-ink tracking-tight">대시보드</h1>
         <p className="text-base text-sub mt-2">
@@ -18,30 +18,37 @@ export default function DashboardHome() {
         </p>
       </div>
 
-      <div className="space-y-12">
-        {CATEGORY_ORDER.map((category) => {
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {CATEGORY_ORDER.map((category, idx) => {
           const tools = grouped[category];
           const meta = CATEGORY_META[category];
           return (
-            <section key={category}>
-              <div className="flex items-baseline gap-3 mb-5">
-                <h2 className="text-xl font-bold text-ink tracking-tight">
-                  <span className="mr-2">{meta.emoji}</span>
-                  {category}
-                </h2>
-                <p className="text-sm text-mute">{meta.description}</p>
+            <div key={category} className="flex flex-col">
+              {/* 카테고리 헤더 */}
+              <div className="mb-4 px-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-2xl">{meta.emoji}</span>
+                  <h2 className="text-lg font-bold text-ink tracking-tight">
+                    {category}
+                  </h2>
+                  <span className="ml-auto text-xs font-bold text-mute bg-chip px-2 py-0.5 rounded-md">
+                    STEP {idx + 1}
+                  </span>
+                </div>
+                <p className="text-[13px] text-mute leading-relaxed">
+                  {meta.description}
+                </p>
               </div>
 
-              {tools.length === 0 ? (
-                <EmptyCategory />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {tools.map((tool) => (
-                    <ToolCard key={tool.slug} tool={tool} />
-                  ))}
-                </div>
-              )}
-            </section>
+              {/* 툴 카드들 (세로 스택) */}
+              <div className="flex flex-col gap-3 flex-1">
+                {tools.length === 0 ? (
+                  <EmptyCategory />
+                ) : (
+                  tools.map((tool) => <ToolCard key={tool.slug} tool={tool} />)
+                )}
+              </div>
+            </div>
           );
         })}
       </div>
@@ -53,49 +60,50 @@ function ToolCard({ tool }: { tool: Tool }) {
   const isLive = tool.status === "live";
   const card = (
     <div
-      className={`relative aspect-square p-7 rounded-xl3 bg-surface shadow-card border border-line transition flex flex-col ${
+      className={`relative p-5 rounded-xl2 bg-surface shadow-card border border-line transition flex flex-col ${
         isLive
-          ? "hover:shadow-pop hover:-translate-y-1 hover:border-lineStrong"
+          ? "hover:shadow-pop hover:-translate-y-0.5 hover:border-lineStrong"
           : "opacity-60 cursor-not-allowed"
       }`}
     >
       <div
-        className={`w-14 h-14 rounded-2xl ${tool.color} flex items-center justify-center text-3xl mb-5`}
+        className={`w-11 h-11 rounded-xl ${tool.color} flex items-center justify-center text-2xl mb-3`}
       >
         {tool.emoji}
       </div>
 
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <h3 className="text-xl font-bold text-ink tracking-tight">
+      <div className="flex items-start gap-2 mb-1.5 flex-wrap">
+        <h3 className="text-[15px] font-bold text-ink tracking-tight leading-snug">
           {tool.name}
         </h3>
+      </div>
+
+      <p className="text-[13px] text-sub leading-relaxed line-clamp-2 font-medium mb-3">
+        {tool.description}
+      </p>
+
+      <div className="mt-auto flex items-center gap-1.5 flex-wrap">
         {tool.external && (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-warnSoft text-warn">
             EXTERNAL ↗
           </span>
         )}
         {tool.status === "soon" && (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-chip text-mute">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-chip text-mute">
             SOON
           </span>
         )}
         {tool.status === "beta" && (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-warnSoft text-warn">
             BETA
           </span>
         )}
+        {isLive && (
+          <span className="ml-auto text-[13px] font-bold text-brand">
+            {tool.external ? "열기 →" : "사용하기 →"}
+          </span>
+        )}
       </div>
-
-      <p className="text-[15px] text-sub leading-relaxed line-clamp-3 font-medium">
-        {tool.description}
-      </p>
-
-      {isLive && (
-        <div className="mt-auto pt-5 flex items-center text-[15px] font-bold text-brand">
-          <span>{tool.external ? "새 탭에서 열기" : "사용하기"}</span>
-          <span className="ml-1">→</span>
-        </div>
-      )}
     </div>
   );
 
@@ -115,9 +123,9 @@ function ToolCard({ tool }: { tool: Tool }) {
 
 function EmptyCategory() {
   return (
-    <div className="rounded-xl3 border-2 border-dashed border-line py-12 text-center">
-      <p className="text-base font-medium text-mute">
-        곧 다양한 툴이 추가됩니다
+    <div className="flex-1 rounded-xl2 border-2 border-dashed border-line p-6 flex items-center justify-center min-h-[160px]">
+      <p className="text-xs font-medium text-mute text-center">
+        곧 툴이 추가됩니다
       </p>
     </div>
   );
