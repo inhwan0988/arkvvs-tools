@@ -11,22 +11,25 @@ export default function DashboardHome() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {TOOLS.map((tool) => {
           const isLive = tool.status === "live";
           const Card = (
             <div
-              className={`relative p-6 rounded-xl3 bg-surface shadow-card border border-line transition ${
-                isLive ? "hover:shadow-pop hover:-translate-y-0.5" : "opacity-60 cursor-not-allowed"
+              className={`relative aspect-square p-7 rounded-xl3 bg-surface shadow-card border border-line transition flex flex-col ${
+                isLive
+                  ? "hover:shadow-pop hover:-translate-y-1 hover:border-lineStrong"
+                  : "opacity-60 cursor-not-allowed"
               }`}
             >
               <div
-                className={`w-12 h-12 rounded-2xl ${tool.color} flex items-center justify-center text-2xl mb-4`}
+                className={`w-14 h-14 rounded-2xl ${tool.color} flex items-center justify-center text-3xl mb-5`}
               >
                 {tool.emoji}
               </div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-[16px] font-bold text-ink">{tool.name}</h3>
+
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <h3 className="text-[17px] font-bold text-ink">{tool.name}</h3>
                 {tool.external && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
                     EXTERNAL ↗
@@ -43,7 +46,17 @@ export default function DashboardHome() {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-sub leading-relaxed">{tool.description}</p>
+
+              <p className="text-sm text-sub leading-relaxed line-clamp-3">
+                {tool.description}
+              </p>
+
+              {isLive && (
+                <div className="mt-auto pt-4 flex items-center text-sm font-bold text-brand">
+                  <span>{tool.external ? "새 탭에서 열기" : "사용하기"}</span>
+                  <span className="ml-1">→</span>
+                </div>
+              )}
             </div>
           );
           return isLive ? (
@@ -52,6 +65,7 @@ export default function DashboardHome() {
               href={tool.href}
               target={tool.external ? "_blank" : undefined}
               rel={tool.external ? "noopener noreferrer" : undefined}
+              className="block"
             >
               {Card}
             </Link>
