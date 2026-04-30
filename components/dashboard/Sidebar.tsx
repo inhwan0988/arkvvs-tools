@@ -34,12 +34,17 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         </p>
 
         {TOOLS.map((tool) => {
-          const active = pathname.startsWith(tool.href) && tool.href !== "#";
+          const active =
+            !tool.external &&
+            pathname.startsWith(tool.href) &&
+            tool.href !== "#";
           const disabled = tool.status !== "live";
           return (
             <Link
               key={tool.slug}
               href={disabled ? "#" : tool.href}
+              target={tool.external ? "_blank" : undefined}
+              rel={tool.external ? "noopener noreferrer" : undefined}
               onClick={(e) => disabled && e.preventDefault()}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold mb-1 transition ${
                 active
@@ -51,6 +56,9 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
             >
               <span>{tool.emoji}</span>
               <span className="truncate">{tool.name}</span>
+              {tool.external && (
+                <span className="ml-auto text-mute text-xs">↗</span>
+              )}
               {tool.status === "soon" && (
                 <span className="ml-auto text-[10px] font-bold text-mute">SOON</span>
               )}

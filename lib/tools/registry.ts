@@ -12,6 +12,7 @@ export type Tool = {
   href: string;
   status: ToolStatus;
   color: string; // tailwind bg color
+  external?: boolean; // 외부 링크면 true (새 탭으로 열림)
 };
 
 export const TOOLS: Tool[] = [
@@ -25,19 +26,20 @@ export const TOOLS: Tool[] = [
     color: "bg-brandSoft",
   },
   {
+    slug: "spread",
+    name: "Spread",
+    description: "Meta · Instagram 자동 게시 도구 (Arc Publisher)",
+    emoji: "📢",
+    href: "https://spread-joshua-2770s-projects.vercel.app",
+    status: "live",
+    color: "bg-warnSoft",
+    external: true,
+  },
+  {
     slug: "soon-1",
     name: "Coming Soon",
     description: "다음 툴이 곧 추가됩니다",
     emoji: "✨",
-    href: "#",
-    status: "soon",
-    color: "bg-chip",
-  },
-  {
-    slug: "soon-2",
-    name: "Coming Soon",
-    description: "다음 툴이 곧 추가됩니다",
-    emoji: "🚀",
     href: "#",
     status: "soon",
     color: "bg-chip",

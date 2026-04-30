@@ -27,6 +27,11 @@ export default function DashboardHome() {
               </div>
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-[16px] font-bold text-ink">{tool.name}</h3>
+                {tool.external && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
+                    EXTERNAL ↗
+                  </span>
+                )}
                 {tool.status === "soon" && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-chip text-mute">
                     SOON
@@ -42,7 +47,12 @@ export default function DashboardHome() {
             </div>
           );
           return isLive ? (
-            <Link key={tool.slug} href={tool.href}>
+            <Link
+              key={tool.slug}
+              href={tool.href}
+              target={tool.external ? "_blank" : undefined}
+              rel={tool.external ? "noopener noreferrer" : undefined}
+            >
               {Card}
             </Link>
           ) : (
