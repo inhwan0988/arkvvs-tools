@@ -26,7 +26,21 @@ export default function YouTubeSetupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ script, provider, apiKey, stage }),
       });
-      const json = await res.json();
+      const text = await res.text();
+      let json: { data?: GenerateResult; error?: string };
+      try {
+        json = JSON.parse(text);
+      } catch {
+        // 서버가 HTML 에러 페이지를 보낸 경우 (Vercel 타임아웃 등)
+        if (res.status === 504 || res.status === 408) {
+          throw new Error(
+            "⏱ 생성 시간이 너무 오래 걸려 중단됐어요. 스크립트를 짧게 줄이거나 잠시 후 다시 시도해주세요.",
+          );
+        }
+        throw new Error(
+          `서버 오류 (${res.status}): ${text.slice(0, 200)}`,
+        );
+      }
       if (!res.ok) throw new Error(json.error || "생성 실패");
       setResult(json.data as GenerateResult);
     } catch (e: unknown) {
