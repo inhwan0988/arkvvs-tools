@@ -8,7 +8,7 @@ export async function generateWithClaude(opts: {
   const client = new Anthropic({ apiKey: opts.apiKey });
   const res = await client.messages.create({
     model: "claude-sonnet-4-5",
-    max_tokens: 8192,
+    max_tokens: 4096,
     system: opts.system,
     messages: [{ role: "user", content: opts.user }],
   });
