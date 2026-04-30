@@ -3,10 +3,10 @@ import { TOOLS } from "@/lib/tools/registry";
 
 export default function DashboardHome() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-ink">대시보드</h1>
-        <p className="text-sm text-mute mt-1">
+    <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-ink tracking-tight">대시보드</h1>
+        <p className="text-base text-sub mt-2">
           사용할 툴을 선택하세요. 툴은 계속 추가됩니다.
         </p>
       </div>
@@ -28,31 +28,33 @@ export default function DashboardHome() {
                 {tool.emoji}
               </div>
 
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <h3 className="text-[17px] font-bold text-ink">{tool.name}</h3>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <h3 className="text-xl font-bold text-ink tracking-tight">
+                  {tool.name}
+                </h3>
                 {tool.external && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
                     EXTERNAL ↗
                   </span>
                 )}
                 {tool.status === "soon" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-chip text-mute">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-chip text-mute">
                     SOON
                   </span>
                 )}
                 {tool.status === "beta" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-warnSoft text-warn">
                     BETA
                   </span>
                 )}
               </div>
 
-              <p className="text-sm text-sub leading-relaxed line-clamp-3">
+              <p className="text-[15px] text-sub leading-relaxed line-clamp-3 font-medium">
                 {tool.description}
               </p>
 
               {isLive && (
-                <div className="mt-auto pt-4 flex items-center text-sm font-bold text-brand">
+                <div className="mt-auto pt-5 flex items-center text-[15px] font-bold text-brand">
                   <span>{tool.external ? "새 탭에서 열기" : "사용하기"}</span>
                   <span className="ml-1">→</span>
                 </div>
