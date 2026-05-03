@@ -98,6 +98,16 @@ export const TOOLS: Tool[] = [
     color: "bg-successSoft",
     category: "업로드 및 관리",
   },
+  {
+    slug: "ark-clipper",
+    name: "Ark clipper",
+    description: "롱폼 링크 넣으면 쇼츠 생성",
+    emoji: "✂️",
+    href: "#",
+    status: "soon",
+    color: "bg-dangerSoft",
+    category: "업로드 및 관리",
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {

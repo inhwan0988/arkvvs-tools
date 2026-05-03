@@ -2,30 +2,46 @@ import Link from "next/link";
 import {
   CATEGORY_ORDER,
   CATEGORY_META,
+  TOOLS,
   getToolsByCategory,
   type Tool,
 } from "@/lib/tools/registry";
 
 export default function DashboardHome() {
   const grouped = getToolsByCategory();
+  const liveCount = TOOLS.filter((t) => t.status === "live").length;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-10 sm:py-12">
       <div className="mb-10">
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-brand mb-2">
+          arkvvs.tools
+        </p>
         <h1 className="text-3xl font-bold text-ink tracking-tight">대시보드</h1>
-        <p className="text-base text-sub mt-2">
-          유튜브 제작 흐름에 따라 툴을 선택하세요. 툴은 계속 추가됩니다.
+        <p className="text-base text-sub mt-2 max-w-2xl leading-relaxed">
+          제작 단계별로 툴을 고르면 됩니다. 로그인한 수강생 전용이며, 툴은 계속
+          늘어납니다.
+        </p>
+        <p className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-sub">
+          <span
+            className="inline-block size-2 rounded-full bg-success shrink-0"
+            aria-hidden
+          />
+          지금 사용 가능한 툴 · {liveCount}개
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {CATEGORY_ORDER.map((category, idx) => {
           const tools = grouped[category];
           const meta = CATEGORY_META[category];
           return (
-            <div key={category} className="flex flex-col">
+            <div
+              key={category}
+              className="flex flex-col rounded-xl2 border border-line bg-surface p-4 shadow-card"
+            >
               {/* 카테고리 헤더 */}
-              <div className="mb-4 px-1">
+              <div className="mb-4 px-0.5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-2xl">{meta.emoji}</span>
                   <h2 className="text-lg font-bold text-ink tracking-tight">
