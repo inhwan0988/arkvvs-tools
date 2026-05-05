@@ -4,13 +4,13 @@
  */
 export type ToolStatus = "live" | "soon" | "beta";
 
-export type Category = "기획" | "촬영" | "편집" | "업로드 및 관리";
+export type Category = "기획" | "편집" | "업로드 및 관리" | "콘텐츠 활용";
 
 export const CATEGORY_ORDER: Category[] = [
   "기획",
-  "촬영",
   "편집",
   "업로드 및 관리",
+  "콘텐츠 활용",
 ];
 
 export const CATEGORY_META: Record<
@@ -18,11 +18,14 @@ export const CATEGORY_META: Record<
   { emoji: string; description: string }
 > = {
   기획: { emoji: "💡", description: "콘텐츠 아이디어 · 기획" },
-  촬영: { emoji: "🎥", description: "촬영 준비 · 현장 운영" },
   편집: { emoji: "✂️", description: "영상 편집 · 후반 작업" },
   "업로드 및 관리": {
     emoji: "🚀",
     description: "업로드 · 노출 · 트래픽 관리",
+  },
+  "콘텐츠 활용": {
+    emoji: "📢",
+    description: "쇼츠·SNS로 확장 및 재활용",
   },
 };
 
@@ -41,18 +44,15 @@ export type Tool = {
 export const TOOLS: Tool[] = [
   // ━━━ 기획 ━━━
   {
-    slug: "viral-planning",
+    slug: "vvs-planner",
     name: "조회수 터지는 기획",
-    description: "후킹·트렌드 기반 영상 기획안 자동 생성",
+    description: "키워드 → VVS 높은 영상 → 자막 → AI 주제 10개 → 대본 자동 생성",
     emoji: "🔥",
-    href: "#",
-    status: "soon",
+    href: "/tools/vvs-planner",
+    status: "live",
     color: "bg-dangerSoft",
     category: "기획",
   },
-
-  // ━━━ 촬영 ━━━
-  // (예정)
 
   // ━━━ 편집 ━━━
   {
@@ -78,17 +78,6 @@ export const TOOLS: Tool[] = [
     category: "업로드 및 관리",
   },
   {
-    slug: "spread",
-    name: "Spread",
-    description: "Meta · Instagram 자동 게시 도구 (Arc Publisher)",
-    emoji: "📢",
-    href: "https://spread-joshua-2770s-projects.vercel.app",
-    status: "live",
-    color: "bg-warnSoft",
-    category: "업로드 및 관리",
-    external: true,
-  },
-  {
     slug: "sns-traffic",
     name: "SNS 트래픽 추적 및 관리",
     description: "다채널 조회수·유입 · 성과 대시보드",
@@ -98,6 +87,8 @@ export const TOOLS: Tool[] = [
     color: "bg-successSoft",
     category: "업로드 및 관리",
   },
+
+  // ━━━ 콘텐츠 활용 ━━━
   {
     slug: "ark-clipper",
     name: "Ark clipper",
@@ -106,7 +97,18 @@ export const TOOLS: Tool[] = [
     href: "#",
     status: "soon",
     color: "bg-dangerSoft",
-    category: "업로드 및 관리",
+    category: "콘텐츠 활용",
+  },
+  {
+    slug: "spread",
+    name: "Spread",
+    description: "Meta · Instagram 자동 게시 도구 (Arc Publisher)",
+    emoji: "📢",
+    href: "https://spread-joshua-2770s-projects.vercel.app",
+    status: "live",
+    color: "bg-warnSoft",
+    category: "콘텐츠 활용",
+    external: true,
   },
 ];
 

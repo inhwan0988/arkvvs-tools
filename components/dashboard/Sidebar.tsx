@@ -2,96 +2,137 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import {
   CATEGORY_ORDER,
   CATEGORY_META,
   getToolsByCategory,
   type Tool,
 } from "@/lib/tools/registry";
+import { useSidebar } from "./SidebarContext";
+import SidebarToggleButton from "./SidebarToggleButton";
 
 export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const grouped = getToolsByCategory();
+  const { isOpen, close } = useSidebar();
+
+  // 모바일에서 페이지 이동 시 드로어 자동 닫기
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    if (isMobile && isOpen) {
+      close();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
-    <aside className="hidden md:flex w-64 flex-col bg-surface border-r border-line">
-      <div className="h-16 flex items-center px-5 border-b border-line">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-sm">
-            A
-          </div>
-          <span className="font-bold text-ink tracking-tight">arkvvs.tools</span>
-        </Link>
-      </div>
+    <>
+      {/* 모바일 백드롭 (md 미만에서 사이드바 열려있을 때만) */}
+      {isOpen && (
+        <div
+          onClick={close}
+          className="md:hidden fixed inset-0 z-30 bg-black/40 transition-opacity"
+          aria-hidden
+        />
+      )}
 
-      <nav className="flex-1 p-3 overflow-y-auto">
-        <Link
-          href="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold mb-1 transition ${
-            pathname === "/"
-              ? "bg-brandSoft text-brand"
-              : "text-ink hover:bg-chip"
-          }`}
-        >
-          <span className="text-base">🏠</span>
-          <span>대시보드</span>
-        </Link>
-
-        {CATEGORY_ORDER.map((category, idx) => {
-          const tools = grouped[category];
-          if (tools.length === 0) return null;
-          const meta = CATEGORY_META[category];
-          return (
-            <div key={category} className="mt-5">
-              {/* 카테고리 헤더 */}
-              <div className="px-3 mb-2 flex items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-mute tracking-wider">
-                    STEP {idx + 1}
-                  </span>
-                </div>
-                <div className="h-px bg-line flex-1" />
-              </div>
-              <div className="px-3 mb-2.5 flex items-center gap-2">
-                <span className="text-base">{meta.emoji}</span>
-                <span className="text-[13px] font-bold text-ink tracking-tight">
-                  {category}
-                </span>
-              </div>
-
-              {/* 툴 목록 — 좌측 vertical line 으로 그룹 시각화 */}
-              <div className="ml-4 pl-3 border-l-2 border-line space-y-0.5">
-                {tools.map((tool) => (
-                  <SidebarLink key={tool.slug} tool={tool} pathname={pathname} />
-                ))}
-              </div>
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 flex flex-col bg-surface border-r border-line overflow-hidden
+          w-64
+          transition-transform duration-200 ease-out
+          md:relative md:inset-auto md:z-auto md:transition-[width,border-color]
+          ${isOpen
+            ? "translate-x-0 md:w-64 md:translate-x-0"
+            : "-translate-x-full md:w-0 md:translate-x-0 md:border-r-0"}
+        `}
+        aria-hidden={!isOpen}
+      >
+        <div className="h-16 flex items-center px-5 border-b border-line min-w-[16rem]">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center text-white font-bold text-sm">
+              A
             </div>
-          );
-        })}
+            <span className="font-bold text-ink tracking-tight">arkvvs.tools</span>
+          </Link>
+        </div>
 
-        {isAdmin && (
-          <>
-            <div className="mt-6 px-3 mb-2 flex items-center gap-2">
-              <span className="text-[11px] font-bold text-mute tracking-wider">
-                ADMIN
-              </span>
-              <div className="h-px bg-line flex-1" />
-            </div>
+        <nav className="flex-1 p-3 overflow-y-auto min-w-[16rem]">
+          <div className="flex items-center gap-1 mb-1">
             <Link
-              href="/admin"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold mb-1 transition ${
-                pathname.startsWith("/admin")
+              href="/"
+              className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold transition ${
+                pathname === "/"
                   ? "bg-brandSoft text-brand"
-                  : "text-sub hover:bg-chip"
+                  : "text-ink hover:bg-chip"
               }`}
             >
-              <span className="text-base">🛡️</span>
-              <span>사용자 관리</span>
+              <span className="text-base">🏠</span>
+              <span>대시보드</span>
             </Link>
-          </>
-        )}
-      </nav>
-    </aside>
+            <SidebarToggleButton />
+          </div>
+
+          {CATEGORY_ORDER.map((category, idx) => {
+            const tools = grouped[category];
+            if (tools.length === 0) return null;
+            const meta = CATEGORY_META[category];
+            return (
+              <div key={category} className="mt-5">
+                <div className="px-3 mb-2 flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-mute tracking-wider">
+                      STEP {idx + 1}
+                    </span>
+                  </div>
+                  <div className="h-px bg-line flex-1" />
+                </div>
+                <div className="px-3 mb-2.5 flex items-center gap-2">
+                  <span className="text-base">{meta.emoji}</span>
+                  <span className="text-[13px] font-bold text-ink tracking-tight">
+                    {category}
+                  </span>
+                </div>
+
+                <div className="ml-4 pl-3 border-l-2 border-line space-y-0.5">
+                  {tools.map((tool) => (
+                    <SidebarLink
+                      key={tool.slug}
+                      tool={tool}
+                      pathname={pathname}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {isAdmin && (
+            <>
+              <div className="mt-6 px-3 mb-2 flex items-center gap-2">
+                <span className="text-[11px] font-bold text-mute tracking-wider">
+                  ADMIN
+                </span>
+                <div className="h-px bg-line flex-1" />
+              </div>
+              <Link
+                href="/admin"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold mb-1 transition ${
+                  pathname.startsWith("/admin")
+                    ? "bg-brandSoft text-brand"
+                    : "text-sub hover:bg-chip"
+                }`}
+              >
+                <span className="text-base">🛡️</span>
+                <span>사용자 관리</span>
+              </Link>
+            </>
+          )}
+        </nav>
+      </aside>
+    </>
   );
 }
 
