@@ -174,7 +174,8 @@ export default function Step1KeywordSearch() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
+        <div className="mt-4 rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger leading-relaxed">
+          <span className="mr-1">⚠️</span>
           {error}
         </div>
       )}
@@ -201,16 +202,21 @@ export default function Step1KeywordSearch() {
         <>
           <div className="mt-6 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm text-sub">
+              {error && (
+                <span className="mr-1.5 rounded-md bg-warnSoft px-2 py-0.5 text-[11px] font-bold text-warn">
+                  이전 검색 결과
+                </span>
+              )}
               총 {videos.length}개 영상
               {filters.videoFormat === "long" && " · 롱폼만"}
               {filters.videoFormat === "shorts" && " · 쇼츠만"}
-              {wasCached && (
+              {wasCached && !error && (
                 <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-successSoft px-2 py-0.5 text-[11px] font-bold text-success">
                   ⚡ 캐시 (quota 0)
                 </span>
               )}
             </p>
-            {wasCached && (
+            {wasCached && !error && (
               <button
                 onClick={() => search(true)}
                 className="text-xs font-semibold text-sub hover:text-ink underline"

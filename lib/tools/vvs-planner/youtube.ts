@@ -104,6 +104,53 @@ function engagementMultiplier(
   return { rate, mult };
 }
 
+interface YouTubeErrorBody {
+  error?: {
+    code?: number;
+    message?: string;
+    errors?: { reason?: string; message?: string }[];
+  };
+}
+
+function parseYouTubeApiError(status: number, body: string): string {
+  let parsed: YouTubeErrorBody | null = null;
+  try {
+    parsed = JSON.parse(body) as YouTubeErrorBody;
+  } catch {
+    // ignore
+  }
+  const reason = parsed?.error?.errors?.[0]?.reason;
+  const apiMsg = parsed?.error?.message ?? "";
+
+  if (status === 403) {
+    if (reason === "quotaExceeded" || reason === "dailyLimitExceeded") {
+      return "오늘 YouTube API 일일 한도(10,000 units)를 모두 사용했어요. 한국시간 오후 4~5시경 자동 초기화됩니다. 또는 다른 Google Cloud 프로젝트에서 새 키를 발급받아 사용해주세요.";
+    }
+    if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") {
+      return "잠깐 사이 요청이 너무 많았어요. 30초~1분 후 다시 시도해주세요.";
+    }
+    if (reason === "keyInvalid") {
+      return "YouTube API 키가 잘못되었어요. 우측 상단 키 입력칸에서 다시 확인해주세요.";
+    }
+    if (reason === "accessNotConfigured") {
+      return "이 키의 Google Cloud 프로젝트에 YouTube Data API v3가 활성화되어 있지 않아요. 콘솔에서 해당 API를 사용 설정한 뒤 다시 시도해주세요.";
+    }
+    if (reason === "ipRefererBlocked") {
+      return "키에 IP/Referer 제한이 걸려있어요. Google Cloud Console → 사용자 인증 정보 → 해당 키의 제한사항을 확인해주세요.";
+    }
+    return `YouTube API 접근 거부 (403)${apiMsg ? `: ${apiMsg.slice(0, 150)}` : ""}`;
+  }
+
+  if (status === 400) {
+    if (reason === "badRequest") {
+      return "검색 요청이 잘못되었어요. 키 형식을 다시 확인해주세요.";
+    }
+    return `검색 요청 오류 (400)${apiMsg ? `: ${apiMsg.slice(0, 150)}` : ""}`;
+  }
+
+  return `YouTube API 오류 (${status})${apiMsg ? `: ${apiMsg.slice(0, 150)}` : ""}`;
+}
+
 async function fetchSearchPage(
   apiKey: string,
   keyword: string,
@@ -111,7 +158,7 @@ async function fetchSearchPage(
   duration: string | undefined,
   publishedAfter: string | undefined,
   pageToken?: string,
-): Promise<SearchResponse | null> {
+): Promise<SearchResponse> {
   const params = new URLSearchParams({
     part: "snippet",
     q: keyword,
@@ -127,8 +174,8 @@ async function fetchSearchPage(
   if (pageToken) params.set("pageToken", pageToken);
   const res = await fetch(`${BASE_URL}/search?${params.toString()}`);
   if (!res.ok) {
-    // 한 페이지 실패해도 전체 검색을 죽이지 않음 (quota 부분 소진 등)
-    return null;
+    const body = await res.text();
+    throw new Error(parseYouTubeApiError(res.status, body));
   }
   return (await res.json()) as SearchResponse;
 }
@@ -164,19 +211,28 @@ export async function searchVideos(
   const pagesPerSort = filters.deepSearch ? PAGES_DEEP : PAGES_NORMAL;
   const dedupedItems = new Map<string, SearchItem>();
   const durations = DURATIONS_BY_FORMAT[filters.videoFormat];
-  for (const order of SORT_ORDERS) {
+  let hadAnySuccess = false;
+  outer: for (const order of SORT_ORDERS) {
     for (const duration of durations) {
       let pageToken: string | undefined = undefined;
       for (let page = 0; page < pagesPerSort; page++) {
-        const resp: SearchResponse | null = await fetchSearchPage(
-          apiKey,
-          keyword,
-          order,
-          duration,
-          publishedAfter,
-          pageToken,
-        );
-        if (!resp) break;
+        let resp: SearchResponse;
+        try {
+          resp = await fetchSearchPage(
+            apiKey,
+            keyword,
+            order,
+            duration,
+            publishedAfter,
+            pageToken,
+          );
+        } catch (err) {
+          // 첫 호출부터 실패 → 키/quota 문제. 친절한 메시지로 즉시 throw
+          if (!hadAnySuccess) throw err;
+          // 부분 성공 후 실패 → 가져온 결과는 보존하고 종료
+          break outer;
+        }
+        hadAnySuccess = true;
         for (const item of resp.items ?? []) {
           if (item.id?.videoId && !dedupedItems.has(item.id.videoId)) {
             dedupedItems.set(item.id.videoId, item);
@@ -187,19 +243,7 @@ export async function searchVideos(
       }
     }
   }
-  if (dedupedItems.size === 0) {
-    // 첫 번째 검색이 실패한 거면 명시적 에러 반환 (키 문제 진단 용이)
-    const probe = await fetch(
-      `${BASE_URL}/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=1&key=${apiKey}`,
-    );
-    if (!probe.ok) {
-      const txt = await probe.text();
-      throw new Error(
-        `YouTube 검색 API 오류 (${probe.status}): ${txt.slice(0, 200)}`,
-      );
-    }
-    return [];
-  }
+  if (dedupedItems.size === 0) return [];
 
   const items = [...dedupedItems.values()];
   const videoIds = items.map((i) => i.id.videoId);
