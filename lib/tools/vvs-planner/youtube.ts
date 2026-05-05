@@ -10,14 +10,11 @@ import type {
 const BASE_URL = "https://www.googleapis.com/youtube/v3";
 
 // 후보 풀 설정 — 정렬 2가지(relevance, date) × 페이지 N × 50
-// 일반 검색: 페이지 3 → 6 calls = 600 units → 일 ~16회
+// 일반 검색: 페이지 2 → 4 calls = 400 units → 일 ~25회 (키 1개 기준)
 // 심층 검색(deepSearch=true): 페이지 5 → 10 calls = 1,000 units → 일 ~10회
-// 영상 형식 필터:
-//   all    → duration 미지정 1회
-//   shorts → duration=short 1회
-//   long   → duration=medium 1회 (long=20분 초과 제외 — 4~20분 영상이 대다수)
+// 키 여러 개 등록 시: 첫 키 quota 소진되면 다음 키로 자동 로테이션
 const SORT_ORDERS: ("relevance" | "date")[] = ["relevance", "date"];
-const PAGES_NORMAL = 3;
+const PAGES_NORMAL = 2;
 const PAGES_DEEP = 5;
 const RESULTS_PER_PAGE = 50;
 const RETURN_TOP_N = 30;
@@ -197,7 +194,47 @@ async function chunkedFetch<T>(
   return out;
 }
 
+/**
+ * 키가 여러 개면 차례로 시도 — quota/rate-limit 에러 시 다음 키로 fallback.
+ * 그 외 에러(키 무효, 네트워크 등)는 즉시 throw.
+ */
 export async function searchVideos(
+  apiKeys: string | string[],
+  keyword: string,
+  filters: SearchFilters,
+): Promise<VideoResult[]> {
+  const keys = (Array.isArray(apiKeys) ? apiKeys : [apiKeys])
+    .map((k) => k.trim())
+    .filter(Boolean);
+  if (keys.length === 0) {
+    throw new Error("YouTube API 키가 필요합니다.");
+  }
+
+  let lastErr: Error | null = null;
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      return await searchWithSingleKey(keys[i], keyword, filters);
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+      const msg = lastErr.message;
+      const isQuotaErr =
+        msg.includes("일일 한도") ||
+        msg.includes("요청이 너무 많았") ||
+        msg.includes("quotaExceeded") ||
+        msg.includes("rateLimitExceeded");
+      if (isQuotaErr && i < keys.length - 1) {
+        // 다음 키로 시도
+        continue;
+      }
+      // 키 무효·설정 문제·네트워크 등 → 즉시 throw
+      // 또는 마지막 키까지 quota 소진 → 마지막 에러 throw
+      throw lastErr;
+    }
+  }
+  throw lastErr ?? new Error("등록된 모든 YouTube 키가 quota 초과 상태입니다.");
+}
+
+async function searchWithSingleKey(
   apiKey: string,
   keyword: string,
   filters: SearchFilters,

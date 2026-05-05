@@ -48,7 +48,7 @@ const GUIDES: Record<
         body: "키는 브라우저 localStorage에만 저장되며 서버로 전송되지 않습니다 (BYOK).",
       },
     ],
-    note: "키는 보통 'AIzaSy…' 로 시작합니다. 일 10,000 units 한도(검색 약 16회/일). 부족하면 같은 콘솔에서 quota 증액 신청 가능.",
+    note: "키는 보통 'AIzaSy…' 로 시작합니다. 일 10,000 units 한도 = 약 25회 검색/일. **여러 개 등록 시 quota가 합산됩니다** — Google Cloud에서 새 프로젝트를 더 만들고 각각 키를 발급받아 입력칸에 쉼표(,)로 구분해서 붙여넣으면 quota가 키 개수만큼 늘어납니다 (예: 3개 → 일 ~75회).",
   },
   claude: {
     title: "Anthropic Claude API 키 발급 방법",

@@ -66,8 +66,14 @@ export async function POST(req: NextRequest) {
   }
 
   // ─── 캐시 미스 → YouTube API 호출 ────────────────
-  const apiKey = body.youtubeApiKey?.trim() || process.env.YOUTUBE_API_KEY;
-  if (!apiKey) {
+  // 사용자 키(쉼표/줄바꿈 구분 가능) 우선, 없으면 서버 env (이것도 쉼표 가능)
+  const rawKeys = body.youtubeApiKey?.trim() || process.env.YOUTUBE_API_KEY || "";
+  const keys = rawKeys
+    .split(/[,\n]/)
+    .map((k) => k.trim())
+    .filter(Boolean);
+
+  if (keys.length === 0) {
     return NextResponse.json(
       { error: "YouTube API 키가 필요합니다." },
       { status: 400 },
@@ -75,7 +81,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const videos = await searchVideos(apiKey, keyword, filters);
+    const videos = await searchVideos(keys, keyword, filters);
     // 결과가 있을 때만 캐시 (빈 결과 캐시는 의미 없음, quota 에러 방지)
     if (videos.length > 0) {
       await writeCache(supabase, cacheKey, videos);

@@ -48,12 +48,13 @@ export default function SettingsBar() {
           <div className="flex items-center gap-2 ml-auto">
             <KeyInput
               label="YouTube"
-              placeholder="AIzaSy…"
+              placeholder="AIzaSy… (여러 개면 쉼표로)"
               value={youtubeApiKey}
               onChange={setYoutubeApiKey}
               show={showYt}
               setShow={setShowYt}
               onHelp={() => setGuide("youtube")}
+              multiKey
             />
             <KeyInput
               label="Claude"
@@ -80,6 +81,7 @@ function KeyInput({
   show,
   setShow,
   onHelp,
+  multiKey = false,
 }: {
   label: string;
   placeholder: string;
@@ -88,7 +90,12 @@ function KeyInput({
   show: boolean;
   setShow: (v: boolean) => void;
   onHelp: () => void;
+  multiKey?: boolean;
 }) {
+  // 다중 키일 때 등록된 키 개수 카운트 (UX 표시용)
+  const keyCount = multiKey
+    ? value.split(/[,\n]/).map((k) => k.trim()).filter(Boolean).length
+    : 0;
   return (
     <div className="relative hidden sm:block">
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-mute uppercase tracking-wider pointer-events-none">
@@ -99,8 +106,15 @@ function KeyInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="text-sm pl-16 pr-20 py-2 rounded-xl bg-chip w-64 focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30 transition font-mono placeholder:text-mute"
+        className={`text-sm pl-16 pr-24 py-2 rounded-xl bg-chip ${
+          multiKey ? "w-80" : "w-64"
+        } focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30 transition font-mono placeholder:text-mute`}
       />
+      {multiKey && keyCount > 1 && (
+        <span className="absolute right-20 top-1/2 -translate-y-1/2 text-[10px] font-bold text-success bg-success/15 px-1.5 py-0.5 rounded">
+          {keyCount}개
+        </span>
+      )}
       <button
         onClick={() => setShow(!show)}
         className="absolute right-9 top-1/2 -translate-y-1/2 text-xs text-mute hover:text-ink px-1.5 py-1"

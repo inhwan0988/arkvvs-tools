@@ -167,7 +167,7 @@ export default function Step1KeywordSearch() {
             />
             심층 검색
             <span className="text-mute font-medium">
-              — 후보 풀 ↑, quota 약 1.7배 소모
+              — 후보 풀 ↑↑, quota 약 2.5배 소모 (일 ~10회)
             </span>
           </label>
         </div>
