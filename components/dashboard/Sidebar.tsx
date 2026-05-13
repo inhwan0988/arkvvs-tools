@@ -12,9 +12,16 @@ import {
 import { useSidebar } from "./SidebarContext";
 import SidebarToggleButton from "./SidebarToggleButton";
 
-export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+export default function Sidebar({
+  isAdmin = false,
+  isPremium = false,
+}: {
+  isAdmin?: boolean;
+  isPremium?: boolean;
+}) {
   const pathname = usePathname();
-  const grouped = getToolsByCategory();
+  const groupedFree = getToolsByCategory({ membersOnly: false });
+  const groupedPremium = getToolsByCategory({ membersOnly: true });
   const { isOpen, close } = useSidebar();
 
   // 모바일에서 페이지 이동 시 드로어 자동 닫기
@@ -76,7 +83,7 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           </div>
 
           {CATEGORY_ORDER.map((category, idx) => {
-            const tools = grouped[category];
+            const tools = groupedFree[category];
             if (tools.length === 0) return null;
             const meta = CATEGORY_META[category];
             return (
@@ -102,6 +109,46 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                       key={tool.slug}
                       tool={tool}
                       pathname={pathname}
+                      locked={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 회원전용 섹션 */}
+          <div className="mt-7 px-3 mb-2 flex items-center gap-2">
+            <span className="text-base">⭐</span>
+            <span className="text-[11px] font-bold text-premium tracking-wider">
+              회원전용
+            </span>
+            {!isPremium && (
+              <span className="text-[9px] font-bold text-mute">🔒</span>
+            )}
+            <div className="h-px bg-premium/30 flex-1" />
+          </div>
+
+          {CATEGORY_ORDER.map((category) => {
+            const tools = groupedPremium[category];
+            if (tools.length === 0) return null;
+            const meta = CATEGORY_META[category];
+            return (
+              <div key={`premium-${category}`} className="mt-3">
+                <div className="px-3 mb-2 flex items-center gap-2">
+                  <span className="text-base">{meta.emoji}</span>
+                  <span className="text-[13px] font-bold text-ink tracking-tight">
+                    {category}
+                  </span>
+                </div>
+
+                <div className="ml-4 pl-3 border-l-2 border-premium/30 space-y-0.5">
+                  {tools.map((tool) => (
+                    <SidebarLink
+                      key={tool.slug}
+                      tool={tool}
+                      pathname={pathname}
+                      locked={!isPremium}
                     />
                   ))}
                 </div>
@@ -136,10 +183,20 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   );
 }
 
-function SidebarLink({ tool, pathname }: { tool: Tool; pathname: string }) {
+function SidebarLink({
+  tool,
+  pathname,
+  locked,
+}: {
+  tool: Tool;
+  pathname: string;
+  locked: boolean;
+}) {
   const active =
     !tool.external && pathname.startsWith(tool.href) && tool.href !== "#";
-  const disabled = tool.status !== "live";
+  const disabled = tool.status !== "live" || locked;
+  const isPremium = Boolean(tool.membersOnly);
+
   return (
     <Link
       href={disabled ? "#" : tool.href}
@@ -148,15 +205,24 @@ function SidebarLink({ tool, pathname }: { tool: Tool; pathname: string }) {
       onClick={(e) => disabled && e.preventDefault()}
       className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition ${
         active
-          ? "bg-brandSoft text-brand"
+          ? isPremium
+            ? "bg-premiumSoft text-premium"
+            : "bg-brandSoft text-brand"
           : disabled
-          ? "text-mute cursor-not-allowed"
-          : "text-sub hover:bg-chip hover:text-ink"
+            ? "text-mute cursor-not-allowed"
+            : isPremium
+              ? "text-sub hover:bg-premiumSoft hover:text-premium"
+              : "text-sub hover:bg-chip hover:text-ink"
       }`}
     >
       <span className="text-sm">{tool.emoji}</span>
       <span className="truncate flex-1">{tool.name}</span>
       {tool.external && <span className="text-mute text-[11px]">↗</span>}
+      {locked && (
+        <span className="text-[10px] text-mute" aria-label="locked">
+          🔒
+        </span>
+      )}
       {tool.status === "soon" && (
         <span className="text-[9px] font-bold text-mute bg-chip px-1.5 py-0.5 rounded">
           SOON

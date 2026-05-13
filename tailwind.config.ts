@@ -26,6 +26,9 @@ const config: Config = {
         warnSoft: "#FEF6E6",
         danger: "#F04452",
         dangerSoft: "#FEECEE",
+        premium: "#8B5CF6",
+        premiumHover: "#7C3AED",
+        premiumSoft: "#F3EFFD",
       },
       fontFamily: {
         sans: [

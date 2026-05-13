@@ -39,6 +39,7 @@ export type Tool = {
   color: string; // tailwind bg color
   category: Category;
   external?: boolean; // 외부 링크면 true (새 탭으로 열림)
+  membersOnly?: boolean; // true면 회원전용 (premium tier만 접근 가능)
 };
 
 export const TOOLS: Tool[] = [
@@ -77,16 +78,6 @@ export const TOOLS: Tool[] = [
     color: "bg-brandSoft",
     category: "업로드 및 관리",
   },
-  {
-    slug: "sns-traffic",
-    name: "SNS 트래픽 추적 및 관리",
-    description: "다채널 조회수·유입 · 성과 대시보드",
-    emoji: "📊",
-    href: "#",
-    status: "soon",
-    color: "bg-successSoft",
-    category: "업로드 및 관리",
-  },
 
   // ━━━ 콘텐츠 활용 ━━━
   {
@@ -110,15 +101,78 @@ export const TOOLS: Tool[] = [
     category: "콘텐츠 활용",
     external: true,
   },
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 회원전용 (premium tier만 접근 가능 — 관리자가 사용자 관리에서 부여)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // ━━━ 기획 (회원전용) ━━━
+  {
+    slug: "insta-viral-planner",
+    name: "인스타그램 떡상 기획",
+    description: "릴스·피드 떡상 키워드 분석 + 콘텐츠 기획 자동화",
+    emoji: "📱",
+    href: "#",
+    status: "soon",
+    color: "bg-premiumSoft",
+    category: "기획",
+    membersOnly: true,
+  },
+
+  // ━━━ 편집 (회원전용) ━━━
+  {
+    slug: "capcut-auto-edit",
+    name: "캡컷 반자동 편집",
+    description: "캡컷 템플릿 기반 컷 편집 · 자막 자동화",
+    emoji: "🎞️",
+    href: "#",
+    status: "soon",
+    color: "bg-premiumSoft",
+    category: "편집",
+    membersOnly: true,
+  },
+
+  // ━━━ 업로드 및 관리 (회원전용) ━━━
+  {
+    slug: "sns-traffic",
+    name: "SNS 트래픽 추적 및 관리",
+    description: "다채널 조회수·유입 · 성과 대시보드",
+    emoji: "📊",
+    href: "#",
+    status: "soon",
+    color: "bg-premiumSoft",
+    category: "업로드 및 관리",
+    membersOnly: true,
+  },
+
+  // ━━━ 콘텐츠 활용 (회원전용) ━━━
+  {
+    slug: "premium-content-soon",
+    name: "준비 중",
+    description: "회원전용 콘텐츠 활용 툴이 곧 추가됩니다.",
+    emoji: "📢",
+    href: "#",
+    status: "soon",
+    color: "bg-premiumSoft",
+    category: "콘텐츠 활용",
+    membersOnly: true,
+  },
 ];
 
 export function getTool(slug: string): Tool | undefined {
   return TOOLS.find((t) => t.slug === slug);
 }
 
-export function getToolsByCategory(): Record<Category, Tool[]> {
+export function getToolsByCategory(opts?: {
+  membersOnly?: boolean;
+}): Record<Category, Tool[]> {
+  const filter = opts?.membersOnly;
   const grouped = {} as Record<Category, Tool[]>;
   for (const cat of CATEGORY_ORDER) grouped[cat] = [];
-  for (const tool of TOOLS) grouped[tool.category].push(tool);
+  for (const tool of TOOLS) {
+    if (filter === true && !tool.membersOnly) continue;
+    if (filter === false && tool.membersOnly) continue;
+    grouped[tool.category].push(tool);
+  }
   return grouped;
 }

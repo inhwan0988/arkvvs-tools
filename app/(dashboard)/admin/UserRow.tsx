@@ -3,17 +3,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/lib/types/profile";
-import { setUserStatus } from "./actions";
+import { setUserStatus, setUserTier } from "./actions";
 
 export default function UserRow({ user }: { user: Profile }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [statusPending, startStatusTransition] = useTransition();
+  const [tierPending, startTierTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function toggleStatus() {
     const next = user.status === "approved" ? "banned" : "approved";
     if (next === "banned" && !confirm(`${user.email} 계정을 차단할까요?`)) return;
-    startTransition(async () => {
+    startStatusTransition(async () => {
       const result = await setUserStatus(user.id, next);
       if (result?.error) {
         setError(result.error);
@@ -23,7 +24,22 @@ export default function UserRow({ user }: { user: Profile }) {
     });
   }
 
+  function toggleTier() {
+    const next = user.tier === "premium" ? "free" : "premium";
+    const label = next === "premium" ? "회원전용 권한 부여" : "회원전용 권한 해제";
+    if (!confirm(`${user.email}에게 ${label} 할까요?`)) return;
+    startTierTransition(async () => {
+      const result = await setUserTier(user.id, next);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   const display = user.name || user.email.split("@")[0];
+  const isAdmin = user.role === "admin";
 
   return (
     <div className="px-6 py-4 flex items-center gap-4 hover:bg-chip/40 transition">
@@ -42,11 +58,16 @@ export default function UserRow({ user }: { user: Profile }) {
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-sm font-bold text-ink truncate">{display}</p>
-          {user.role === "admin" && (
+          {isAdmin && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brandSoft text-brand">
               ADMIN
+            </span>
+          )}
+          {user.tier === "premium" && !isAdmin && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-premiumSoft text-premium">
+              ⭐ PREMIUM
             </span>
           )}
           {user.status === "banned" && (
@@ -63,18 +84,39 @@ export default function UserRow({ user }: { user: Profile }) {
 
       {error && <p className="text-xs text-danger mr-2">{error}</p>}
 
-      {user.role !== "admin" && (
-        <button
-          onClick={toggleStatus}
-          disabled={pending}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-50 ${
-            user.status === "approved"
-              ? "bg-dangerSoft text-danger hover:bg-danger hover:text-white"
-              : "bg-successSoft text-success hover:bg-success hover:text-white"
-          }`}
-        >
-          {pending ? "..." : user.status === "approved" ? "차단" : "차단 해제"}
-        </button>
+      {!isAdmin && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTier}
+            disabled={tierPending}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition disabled:opacity-50 ${
+              user.tier === "premium"
+                ? "bg-premiumSoft text-premium hover:bg-premium hover:text-white"
+                : "bg-chip text-sub hover:bg-premium hover:text-white"
+            }`}
+          >
+            {tierPending
+              ? "..."
+              : user.tier === "premium"
+                ? "회원전용 해제"
+                : "회원전용 부여"}
+          </button>
+          <button
+            onClick={toggleStatus}
+            disabled={statusPending}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-50 ${
+              user.status === "approved"
+                ? "bg-dangerSoft text-danger hover:bg-danger hover:text-white"
+                : "bg-successSoft text-success hover:bg-success hover:text-white"
+            }`}
+          >
+            {statusPending
+              ? "..."
+              : user.status === "approved"
+                ? "차단"
+                : "차단 해제"}
+          </button>
+        </div>
       )}
     </div>
   );

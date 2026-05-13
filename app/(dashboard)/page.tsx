@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireApproved } from "@/lib/auth";
 import {
   CATEGORY_ORDER,
   CATEGORY_META,
@@ -7,9 +8,15 @@ import {
   type Tool,
 } from "@/lib/tools/registry";
 
-export default function DashboardHome() {
-  const grouped = getToolsByCategory();
-  const liveCount = TOOLS.filter((t) => t.status === "live").length;
+export default async function DashboardHome() {
+  const profile = await requireApproved();
+  const isPremium = profile.tier === "premium";
+
+  const groupedFree = getToolsByCategory({ membersOnly: false });
+  const groupedPremium = getToolsByCategory({ membersOnly: true });
+  const liveCount = TOOLS.filter(
+    (t) => t.status === "live" && !t.membersOnly,
+  ).length;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 sm:py-12">
@@ -31,54 +38,127 @@ export default function DashboardHome() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {CATEGORY_ORDER.map((category, idx) => {
-          const tools = grouped[category];
-          const meta = CATEGORY_META[category];
-          return (
-            <div
-              key={category}
-              className="flex flex-col rounded-xl2 border border-line bg-surface p-4 shadow-card"
-            >
-              {/* 카테고리 헤더 */}
-              <div className="mb-4 px-0.5">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-2xl">{meta.emoji}</span>
-                  <h2 className="text-lg font-bold text-ink tracking-tight">
-                    {category}
-                  </h2>
-                  <span className="ml-auto text-xs font-bold text-mute bg-chip px-2 py-0.5 rounded-md">
-                    STEP {idx + 1}
-                  </span>
-                </div>
-                <p className="text-[13px] text-mute leading-relaxed">
-                  {meta.description}
-                </p>
-              </div>
+      <CategoryGrid grouped={groupedFree} variant="free" />
 
-              {/* 툴 카드들 (세로 스택) */}
-              <div className="flex flex-col gap-3 flex-1">
-                {tools.length === 0 ? (
-                  <EmptyCategory />
-                ) : (
-                  tools.map((tool) => <ToolCard key={tool.slug} tool={tool} />)
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="mt-14 mb-8 relative">
+        <div className="absolute inset-0 flex items-center" aria-hidden>
+          <div className="w-full border-t border-line" />
+        </div>
+        <div className="relative flex items-center justify-center">
+          <span className="bg-bg px-4 inline-flex items-center gap-2">
+            <span className="text-lg">⭐</span>
+            <span className="text-sm font-bold text-premium tracking-tight">
+              회원전용
+            </span>
+            {isPremium ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-premiumSoft text-premium">
+                MY ACCESS
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-chip text-mute">
+                LOCKED
+              </span>
+            )}
+          </span>
+        </div>
+        {!isPremium && (
+          <p className="text-center text-xs text-mute mt-3 max-w-md mx-auto leading-relaxed">
+            아래 툴은 수강생 회원에게만 열립니다. 회원 전환은 관리자에게
+            문의해주세요.
+          </p>
+        )}
       </div>
+
+      <CategoryGrid
+        grouped={groupedPremium}
+        variant="premium"
+        locked={!isPremium}
+      />
     </div>
   );
 }
 
-function ToolCard({ tool }: { tool: Tool }) {
+function CategoryGrid({
+  grouped,
+  variant,
+  locked = false,
+}: {
+  grouped: Record<string, Tool[]>;
+  variant: "free" | "premium";
+  locked?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {CATEGORY_ORDER.map((category, idx) => {
+        const tools = grouped[category] ?? [];
+        const meta = CATEGORY_META[category];
+        const isPremiumCol = variant === "premium";
+        return (
+          <div
+            key={`${variant}-${category}`}
+            className={`flex flex-col rounded-xl2 border p-4 shadow-card ${
+              isPremiumCol
+                ? "border-premium/30 bg-premiumSoft/40"
+                : "border-line bg-surface"
+            }`}
+          >
+            <div className="mb-4 px-0.5">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-2xl">{meta.emoji}</span>
+                <h2 className="text-lg font-bold text-ink tracking-tight">
+                  {category}
+                </h2>
+                <span
+                  className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-md ${
+                    isPremiumCol
+                      ? "text-premium bg-premiumSoft"
+                      : "text-mute bg-chip"
+                  }`}
+                >
+                  STEP {idx + 1}
+                </span>
+              </div>
+              <p className="text-[13px] text-mute leading-relaxed">
+                {meta.description}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 flex-1">
+              {tools.length === 0 ? (
+                <EmptyCategory premium={isPremiumCol} />
+              ) : (
+                tools.map((tool) => (
+                  <ToolCard
+                    key={tool.slug}
+                    tool={tool}
+                    locked={locked && Boolean(tool.membersOnly)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ToolCard({ tool, locked = false }: { tool: Tool; locked?: boolean }) {
   const isLive = tool.status === "live";
+  const isPremium = Boolean(tool.membersOnly);
+  const clickable = isLive && !locked;
+
   const card = (
     <div
-      className={`relative p-5 rounded-xl2 bg-surface shadow-card border border-line transition flex flex-col ${
-        isLive
-          ? "hover:shadow-pop hover:-translate-y-0.5 hover:border-lineStrong"
+      className={`relative p-5 rounded-xl2 shadow-card border transition flex flex-col ${
+        isPremium
+          ? "bg-surface border-premium/30"
+          : "bg-surface border-line"
+      } ${
+        clickable
+          ? isPremium
+            ? "hover:shadow-pop hover:-translate-y-0.5 hover:border-premium"
+            : "hover:shadow-pop hover:-translate-y-0.5 hover:border-lineStrong"
           : "opacity-60 cursor-not-allowed"
       }`}
     >
@@ -99,6 +179,11 @@ function ToolCard({ tool }: { tool: Tool }) {
       </p>
 
       <div className="mt-auto flex items-center gap-1.5 flex-wrap">
+        {isPremium && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-premiumSoft text-premium">
+            {locked ? "🔒 회원전용" : "⭐ 회원전용"}
+          </span>
+        )}
         {tool.external && (
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-warnSoft text-warn">
             EXTERNAL ↗
@@ -114,8 +199,12 @@ function ToolCard({ tool }: { tool: Tool }) {
             BETA
           </span>
         )}
-        {isLive && (
-          <span className="ml-auto text-[13px] font-bold text-brand">
+        {clickable && (
+          <span
+            className={`ml-auto text-[13px] font-bold ${
+              isPremium ? "text-premium" : "text-brand"
+            }`}
+          >
             {tool.external ? "열기 →" : "사용하기 →"}
           </span>
         )}
@@ -123,7 +212,7 @@ function ToolCard({ tool }: { tool: Tool }) {
     </div>
   );
 
-  return isLive ? (
+  return clickable ? (
     <Link
       href={tool.href}
       target={tool.external ? "_blank" : undefined}
@@ -137,9 +226,13 @@ function ToolCard({ tool }: { tool: Tool }) {
   );
 }
 
-function EmptyCategory() {
+function EmptyCategory({ premium = false }: { premium?: boolean }) {
   return (
-    <div className="flex-1 rounded-xl2 border-2 border-dashed border-line p-6 flex items-center justify-center min-h-[160px]">
+    <div
+      className={`flex-1 rounded-xl2 border-2 border-dashed p-6 flex items-center justify-center min-h-[160px] ${
+        premium ? "border-premium/30" : "border-line"
+      }`}
+    >
       <p className="text-xs font-medium text-mute text-center">
         곧 툴이 추가됩니다
       </p>

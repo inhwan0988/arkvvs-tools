@@ -18,6 +18,9 @@ export default async function AdminPage() {
   const list = users ?? [];
   const approved = list.filter((u) => u.status === "approved").length;
   const banned = list.filter((u) => u.status === "banned").length;
+  const premium = list.filter(
+    (u) => u.tier === "premium" && u.role !== "admin",
+  ).length;
   const admins = list.filter((u) => u.role === "admin").length;
 
   return (
@@ -25,13 +28,15 @@ export default async function AdminPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-ink">사용자 관리</h1>
         <p className="text-sm text-mute mt-1">
-          가입한 사용자 목록입니다. 차단 시 즉시 모든 툴 사용이 중단됩니다.
+          차단 시 즉시 모든 툴 사용이 중단됩니다. 회원전용 권한은 수강생에게만
+          부여하세요.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <Stat label="전체" value={list.length} />
         <Stat label="활성" value={approved} tone="success" />
+        <Stat label="회원전용" value={premium} tone="premium" />
         <Stat label="차단" value={banned} tone="danger" />
       </div>
 
@@ -61,12 +66,13 @@ function Stat({
 }: {
   label: string;
   value: number;
-  tone?: "default" | "success" | "danger";
+  tone?: "default" | "success" | "danger" | "premium";
 }) {
   const colorMap = {
     default: "text-ink",
     success: "text-success",
     danger: "text-danger",
+    premium: "text-premium",
   };
   return (
     <div className="bg-surface rounded-xl2 shadow-card p-5">

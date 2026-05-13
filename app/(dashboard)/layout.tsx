@@ -14,7 +14,10 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <div className="min-h-screen flex">
-        <Sidebar isAdmin={profile.role === "admin"} />
+        <Sidebar
+          isAdmin={profile.role === "admin"}
+          isPremium={profile.tier === "premium"}
+        />
         <div className="flex-1 flex flex-col min-w-0">
           <Header
             email={profile.email}
