@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWizard } from "./WizardContext";
 import TopicCard from "./TopicCard";
 import type { Topic } from "@/lib/tools/vvs-planner/types";
@@ -8,7 +8,6 @@ import type { Topic } from "@/lib/tools/vvs-planner/types";
 export default function Step3TopicSelect() {
   const {
     selectedVideo,
-    transcript,
     setTranscript,
     topics,
     setTopics,
@@ -26,8 +25,9 @@ export default function Step3TopicSelect() {
     topics.length > 0 ? "done" : "transcript",
   );
   const [elapsed, setElapsed] = useState(0);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualText, setManualText] = useState("");
 
-  // 진행 중일 때 1초마다 경과시간 갱신
   useEffect(() => {
     if (!isLoading) {
       setElapsed(0);
@@ -40,6 +40,36 @@ export default function Step3TopicSelect() {
     return () => clearInterval(id);
   }, [isLoading]);
 
+  const generateTopics = useCallback(
+    async (transcript: string, signal?: AbortSignal) => {
+      if (!anthropicApiKey.trim()) {
+        throw new Error("우측 상단에서 Claude API 키를 입력해주세요.");
+      }
+      if (!selectedVideo) throw new Error("영상이 선택되지 않았습니다.");
+
+      setPhase("topics");
+      const topRes = await fetch("/api/tools/vvs-planner/topics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          videoTitle: selectedVideo.title,
+          channelTitle: selectedVideo.channelTitle,
+          anthropicApiKey,
+        }),
+        signal,
+      });
+      if (!topRes.ok) {
+        const d = await topRes.json();
+        throw new Error(d.error ?? "주제 생성 중 오류가 발생했습니다.");
+      }
+      const topData = (await topRes.json()) as { topics: Topic[] };
+      setTopics(topData.topics);
+      setPhase("done");
+    },
+    [anthropicApiKey, selectedVideo, setPhase, setTopics],
+  );
+
   useEffect(() => {
     if (!selectedVideo) {
       goToStep(1);
@@ -47,10 +77,11 @@ export default function Step3TopicSelect() {
     }
     if (topics.length > 0) return;
 
-    let cancelled = false;
+    const ctrl = new AbortController();
     const run = async () => {
       setLoading(true);
       setError(null);
+      setShowManualInput(false);
 
       try {
         setPhase("transcript");
@@ -58,53 +89,57 @@ export default function Step3TopicSelect() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ videoId: selectedVideo.videoId }),
+          signal: ctrl.signal,
         });
         if (!tRes.ok) {
           const d = await tRes.json();
-          throw new Error(d.error ?? "자막 추출 중 오류가 발생했습니다.");
-        }
-        const tData = (await tRes.json()) as { transcript: string };
-        if (cancelled) return;
-        setTranscript(tData.transcript);
-
-        if (!anthropicApiKey.trim()) {
           throw new Error(
-            "우측 상단에서 Claude API 키를 입력해주세요.",
+            d.error ?? "자막 추출 중 오류가 발생했습니다.",
+            { cause: "transcript" },
           );
         }
+        const tData = (await tRes.json()) as { transcript: string };
+        if (ctrl.signal.aborted) return;
+        setTranscript(tData.transcript);
 
-        setPhase("topics");
-        const topRes = await fetch("/api/tools/vvs-planner/topics", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            transcript: tData.transcript,
-            videoTitle: selectedVideo.title,
-            channelTitle: selectedVideo.channelTitle,
-            anthropicApiKey,
-          }),
-        });
-        if (!topRes.ok) {
-          const d = await topRes.json();
-          throw new Error(d.error ?? "주제 생성 중 오류가 발생했습니다.");
-        }
-        const topData = (await topRes.json()) as { topics: Topic[] };
-        if (cancelled) return;
-        setTopics(topData.topics);
-        setPhase("done");
+        await generateTopics(tData.transcript, ctrl.signal);
       } catch (e) {
-        if (cancelled) return;
+        if (ctrl.signal.aborted) return;
+        const isTranscriptError =
+          e instanceof Error && e.cause === "transcript";
         setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
+        if (isTranscriptError) setShowManualInput(true);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       }
     };
     run();
     return () => {
-      cancelled = true;
+      ctrl.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVideo]);
+
+  const handleManualSubmit = useCallback(async () => {
+    const cleaned = cleanTranscript(manualText);
+    if (cleaned.length < 30) {
+      setError(
+        "자막이 너무 짧습니다. 영상의 자막 전체를 복사해서 붙여넣어 주세요.",
+      );
+      return;
+    }
+    setError(null);
+    setShowManualInput(false);
+    setTranscript(cleaned);
+    setLoading(true);
+    try {
+      await generateTopics(cleaned);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [manualText, generateTopics, setTranscript, setLoading, setError]);
 
   return (
     <div>
@@ -129,14 +164,33 @@ export default function Step3TopicSelect() {
         </div>
       )}
 
-      {error && (
+      {error && !isLoading && (
         <div className="mx-auto max-w-md text-center">
           <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
             {error}
           </div>
+        </div>
+      )}
+
+      {showManualInput && !isLoading && (
+        <ManualTranscriptInput
+          videoUrl={
+            selectedVideo
+              ? `https://www.youtube.com/watch?v=${selectedVideo.videoId}`
+              : ""
+          }
+          value={manualText}
+          onChange={setManualText}
+          onSubmit={handleManualSubmit}
+          onCancel={() => goToStep(2)}
+        />
+      )}
+
+      {error && !showManualInput && !isLoading && (
+        <div className="mx-auto mt-4 max-w-md text-center">
           <button
-            onClick={() => goToStep(1)}
-            className="mt-4 rounded-xl border border-line bg-surface px-6 py-2 text-sm font-semibold text-ink transition-colors hover:bg-chip"
+            onClick={() => goToStep(2)}
+            className="rounded-xl border border-line bg-surface px-6 py-2 text-sm font-semibold text-ink transition-colors hover:bg-chip"
           >
             다른 영상 선택하기
           </button>
@@ -185,6 +239,99 @@ export default function Step3TopicSelect() {
       )}
     </div>
   );
+}
+
+function ManualTranscriptInput({
+  videoUrl,
+  value,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  videoUrl: string;
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-line bg-surface p-6 shadow-card">
+      <h3 className="text-base font-bold text-ink">
+        직접 자막을 붙여넣어 주세요
+      </h3>
+      <p className="mt-1 text-sm text-sub">
+        자동 추출이 막혀있어요. YouTube에서 직접 복사해서 붙여넣으면 다음 단계로
+        진행할 수 있어요.
+      </p>
+
+      <ol className="mt-4 space-y-2 text-sm text-sub">
+        <li className="flex gap-2">
+          <span className="font-bold text-brand">1.</span>
+          <span>
+            <a
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-brand underline underline-offset-2"
+            >
+              YouTube에서 이 영상 열기 ↗
+            </a>
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <span className="font-bold text-brand">2.</span>
+          <span>
+            영상 설명란에서 <b>&ldquo;더보기&rdquo;</b> 클릭 →{" "}
+            <b>&ldquo;스크립트 표시&rdquo;</b> 버튼 클릭
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <span className="font-bold text-brand">3.</span>
+          <span>스크립트 패널의 텍스트 전체 선택 + 복사 (Cmd+A, Cmd+C)</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="font-bold text-brand">4.</span>
+          <span>아래 칸에 붙여넣기 (시간 표시는 자동으로 정리됩니다)</span>
+        </li>
+      </ol>
+
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0:00 안녕하세요&#10;0:05 오늘은..."
+        className="mt-4 w-full min-h-[200px] resize-y rounded-xl border border-line bg-bg px-3 py-2.5 text-sm text-ink placeholder:text-mute focus:border-brand focus:outline-none"
+      />
+      <p className="mt-1.5 text-xs text-mute">
+        {value.length > 0
+          ? `${value.length.toLocaleString()}자 · 정제 후 ${cleanTranscript(value).length.toLocaleString()}자`
+          : "텍스트를 붙여넣으세요"}
+      </p>
+
+      <div className="mt-5 flex items-center justify-end gap-2">
+        <button
+          onClick={onCancel}
+          className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink hover:bg-chip"
+        >
+          다른 영상 선택
+        </button>
+        <button
+          onClick={onSubmit}
+          disabled={cleanTranscript(value).length < 30}
+          className="rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brandHover disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          이 자막으로 진행 →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function cleanTranscript(raw: string): string {
+  return raw
+    .replace(/^\s*\d{1,2}:\d{2}(?::\d{2})?\s*/gm, "")
+    .replace(/\[[^\]]*\]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function Pill({
