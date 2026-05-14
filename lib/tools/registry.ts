@@ -82,11 +82,11 @@ export const TOOLS: Tool[] = [
   // ━━━ 콘텐츠 활용 ━━━
   {
     slug: "ark-clipper",
-    name: "Ark clipper",
-    description: "롱폼 링크 넣으면 쇼츠 생성",
+    name: "Ark Clipper",
+    description: "롱폼 YouTube → AI가 후킹 구간 자동 추출 → 9:16 쇼츠 5-6개 생성 (Mac/Win 데스크탑 앱)",
     emoji: "✂️",
-    href: "#",
-    status: "soon",
+    href: "/tools/ark-clipper",
+    status: "live",
     color: "bg-dangerSoft",
     category: "콘텐츠 활용",
   },
