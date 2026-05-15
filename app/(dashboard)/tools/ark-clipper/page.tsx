@@ -6,9 +6,8 @@ const DOWNLOADS = {
     available: true,
   },
   windows: {
-    // Windows 빌드 v0.2.0 검증 중 — 직원 PC에서 native module 재빌드 진행
-    url: "",
-    available: false,
+    url: "https://drive.google.com/file/d/1kycqzS3EgHfAr1HN4CUt9iwnTfd_LhdN/view?usp=sharing",
+    available: true,
   },
 } as const;
 
@@ -77,7 +76,7 @@ export default function ArkClipperPage() {
           <DownloadCard
             os="Windows"
             emoji="🖥️"
-            description="Windows 10/11 64bit · 검증 중"
+            description="Windows 10/11 64bit"
             url={DOWNLOADS.windows.url}
             available={DOWNLOADS.windows.available}
             filename=".exe"
@@ -86,8 +85,7 @@ export default function ArkClipperPage() {
 
         <p className="mt-3 text-xs text-mute">
           모든 영상 처리는 본인 PC에서 진행되어 개인정보 유출 위험이 없습니다.
-          설치 파일 약 275MB.
-          Intel Mac · Windows 사용자는 곧 별도 안내드릴게요.
+          설치 파일 약 220~320MB. Intel Mac 사용자는 별도 안내드릴게요.
         </p>
       </section>
 
