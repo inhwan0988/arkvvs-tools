@@ -1,10 +1,14 @@
 import Link from "next/link";
 
 const DOWNLOADS = {
-  mac: { url: "", available: false },
-  windows: {
-    url: "https://drive.google.com/drive/folders/16whnTS5lZMaVo6roRl8rnOfziRwvFkUm?usp=sharing",
+  mac: {
+    url: "https://drive.google.com/file/d/1u7OsbVJyQRNZ-FY-1DniQzeGY1Qw19Aw/view?usp=sharing",
     available: true,
+  },
+  windows: {
+    // Windows 빌드 검증 중 — 직원 PC에서 native module 빌드 후 재배포 예정
+    url: "",
+    available: false,
   },
 } as const;
 
@@ -44,7 +48,7 @@ export default function ArkClipperPage() {
           <DownloadCard
             os="Mac"
             emoji="💻"
-            description="Apple Silicon · Intel"
+            description="Apple Silicon (M1/M2/M3/M4)"
             url={DOWNLOADS.mac.url}
             available={DOWNLOADS.mac.available}
             filename=".dmg"
@@ -52,7 +56,7 @@ export default function ArkClipperPage() {
           <DownloadCard
             os="Windows"
             emoji="🖥️"
-            description="Windows 10/11 64bit"
+            description="Windows 10/11 64bit · 검증 중"
             url={DOWNLOADS.windows.url}
             available={DOWNLOADS.windows.available}
             filename=".exe"
@@ -61,7 +65,8 @@ export default function ArkClipperPage() {
 
         <p className="mt-3 text-xs text-mute">
           모든 영상 처리는 본인 PC에서 진행되어 개인정보 유출 위험이 없습니다.
-          파일 용량이 약 10GB 정도 됩니다.
+          설치 파일 약 275MB.
+          Intel Mac · Windows 사용자는 곧 별도 안내드릴게요.
         </p>
       </section>
 
@@ -72,27 +77,32 @@ export default function ArkClipperPage() {
         </h2>
         <ol className="space-y-3 text-sm text-sub">
           <Step n={1}>
-            위 <b>Windows 다운로드</b> 클릭 → 구글 드라이브 폴더에서 ZIP 파일
-            받기 (약 10GB, 인터넷 속도에 따라 10~60분)
+            위 <b>다운로드</b> 클릭 → 본인 OS에 맞는 인스톨러 받기 (약 275MB)
           </Step>
           <Step n={2}>
-            받은 ZIP 파일 <b>우클릭 → &ldquo;압축 풀기&rdquo;</b>
+            <b>Mac:</b> .dmg 더블클릭 → 창 안의 Ark Clipper 아이콘을{" "}
+            <b>Applications 폴더로 드래그</b>
+            <span className="block text-xs text-mute mt-1">
+              Windows: .exe 더블클릭 → 인스톨러 따라서 설치
+            </span>
           </Step>
           <Step n={3}>
-            풀린 폴더 안의 <b>start.bat</b> 더블클릭
+            <b>Mac:</b> Applications에서 Ark Clipper{" "}
+            <b>우클릭 → &ldquo;열기&rdquo;</b> (첫 실행만, 그 뒤로는 일반
+            실행)
             <span className="block text-xs text-mute mt-1">
-              Windows 보안 경고가 뜨면 &ldquo;추가 정보 → 실행&rdquo; 클릭
+              Windows: SmartScreen 경고 뜨면 &ldquo;추가 정보 → 실행&rdquo;
+              클릭
             </span>
           </Step>
           <Step n={4}>
-            검은 창이 뜨고 약 5초 후 브라우저가 자동으로 열립니다
+            앱 창이 뜨면 우상단에 API 키 두 개 입력 → 저장
+            <span className="block text-xs text-mute mt-1">
+              Anthropic 키 (sk-ant-...) + OpenAI 키 (sk-...) 둘 다 필요
+            </span>
           </Step>
           <Step n={5}>
-            우상단 API 키 입력칸에{" "}
-            <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">
-              sk-ant-api03-...
-            </code>{" "}
-            형태의 키를 붙여넣으면 준비 완료
+            YouTube URL 붙여넣기 → &ldquo;쇼츠 만들기&rdquo; 클릭 → 준비 완료
           </Step>
         </ol>
       </section>
@@ -153,13 +163,14 @@ export default function ArkClipperPage() {
 
       {/* API 키 발급 */}
       <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">🔑 API 키 발급 (1회)</h2>
-        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
-          <p className="text-sm text-sub mb-4 leading-relaxed">
-            Ark Clipper는 본인 Anthropic 계정의 API 키를 사용합니다. 키는 본인
-            브라우저에만 저장되며 외부 노출 위험이 없습니다.
+        <h2 className="text-base font-bold text-ink mb-4">
+          🔑 API 키 발급 (1회, 두 개 필요)
+        </h2>
+        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card mb-3">
+          <p className="text-sm font-bold text-ink mb-1">
+            1️⃣ Anthropic 키 (Claude AI 분석용)
           </p>
-          <ol className="space-y-2.5 text-sm text-sub">
+          <ol className="space-y-2 text-sm text-sub mt-3">
             <Step n={1}>
               <a
                 href="https://console.anthropic.com"
@@ -169,20 +180,50 @@ export default function ArkClipperPage() {
               >
                 console.anthropic.com
               </a>{" "}
-              가입
+              가입 + 결제 카드 등록 + $5~$10 충전
             </Step>
-            <Step n={2}>결제 카드 등록 → $5~$10 충전 (영상 1개당 $0.05~$0.20 소모)</Step>
-            <Step n={3}>
-              <b>Settings → API Keys → Create Key</b>
-            </Step>
-            <Step n={4}>
+            <Step n={2}>
+              <b>Settings → API Keys → Create Key</b> →{" "}
               <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">
                 sk-ant-api03-...
               </code>{" "}
-              형태의 키 복사 (한 번만 보임)
+              복사
             </Step>
-            <Step n={5}>앱 실행 후 우상단 입력칸에 붙여넣기</Step>
+            <Step n={3}>앱 실행 후 우상단 첫 번째 칸에 붙여넣기</Step>
           </ol>
+          <p className="text-xs text-mute mt-3">
+            영상 1개당 약 $0.05~$0.20 (Claude 분석 비용)
+          </p>
+        </div>
+
+        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
+          <p className="text-sm font-bold text-ink mb-1">
+            2️⃣ OpenAI 키 (Whisper 음성 인식용)
+          </p>
+          <ol className="space-y-2 text-sm text-sub mt-3">
+            <Step n={1}>
+              <a
+                href="https://platform.openai.com/api-keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-brand underline underline-offset-2"
+              >
+                platform.openai.com/api-keys
+              </a>{" "}
+              접속 (구글 계정 가능) + 카드 등록 + $5 충전
+            </Step>
+            <Step n={2}>
+              <b>Create new secret key</b> →{" "}
+              <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">
+                sk-...
+              </code>{" "}
+              복사
+            </Step>
+            <Step n={3}>앱 우상단 두 번째 칸에 붙여넣기</Step>
+          </ol>
+          <p className="text-xs text-mute mt-3">
+            영상 1분당 약 $0.006 (Whisper 음성 인식 비용)
+          </p>
         </div>
       </section>
 
@@ -192,7 +233,10 @@ export default function ArkClipperPage() {
           ▶️ 매번 사용할 때
         </h2>
         <ol className="space-y-2.5 text-sm text-sub">
-          <Step n={1}>풀어둔 폴더 안의 <b>start.bat</b> 더블클릭</Step>
+          <Step n={1}>
+            <b>Ark Clipper</b> 앱 실행 (Mac: Applications · Windows: 시작
+            메뉴)
+          </Step>
           <Step n={2}>YouTube URL 붙여넣기 → &ldquo;쇼츠 만들기&rdquo;</Step>
           <Step n={3}>자동 처리 (다운로드 → 음성 인식 → AI 분석, 1~5분)</Step>
           <Step n={4}>AI 추천 후킹 5~6개 검토 → 시간/제목/디자인 조정</Step>
@@ -205,10 +249,10 @@ export default function ArkClipperPage() {
         <div className="rounded-xl2 border border-success/30 bg-successSoft/40 p-5">
           <h3 className="text-sm font-bold text-success mb-2">🔒 개인정보 보호</h3>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• API 키는 본인 브라우저 localStorage에만 저장 (서버 X)</li>
+            <li>• API 키는 본인 컴퓨터에만 저장 (서버 X, 외부 공유 X)</li>
             <li>• 영상/자막/클립 파일은 본인 PC에 저장 (외부 업로드 없음)</li>
-            <li>• Claude API에는 전사 텍스트만 전송 (영상 파일 X)</li>
-            <li>• 비용은 본인 Anthropic 계정에서 직접 차감</li>
+            <li>• Whisper API에는 음성 데이터, Claude API에는 전사 텍스트만 전송</li>
+            <li>• 비용은 본인 Anthropic / OpenAI 계정에서 직접 차감</li>
           </ul>
         </div>
       </section>
