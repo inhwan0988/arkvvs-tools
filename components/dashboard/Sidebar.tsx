@@ -24,9 +24,16 @@ export default function Sidebar({
   const groupedPremium = getToolsByCategory({ membersOnly: true });
   const { isOpen, close } = useSidebar();
 
-  // 두 큰 섹션 펼침/접힘 상태 (기본 둘 다 펼침)
-  const [freeOpen, setFreeOpen] = useState(true);
-  const [premiumOpen, setPremiumOpen] = useState(true);
+  // 두 큰 섹션 핀(고정 펼침) 상태 — 클릭으로 토글, 기본 둘 다 접힘
+  const [freePinned, setFreePinned] = useState(false);
+  const [premiumPinned, setPremiumPinned] = useState(false);
+  // hover 상태 — 마우스 올리면 펼침
+  const [freeHover, setFreeHover] = useState(false);
+  const [premiumHover, setPremiumHover] = useState(false);
+
+  // 표시 조건: 핀 되었거나 마우스 hover 중이거나
+  const freeOpen = freePinned || freeHover;
+  const premiumOpen = premiumPinned || premiumHover;
 
   // 모바일에서 페이지 이동 시 드로어 자동 닫기
   useEffect(() => {
@@ -87,17 +94,22 @@ export default function Sidebar({
           </div>
 
           {/* ━━━━━ 일반공개 섹션 ━━━━━ */}
-          <SectionHeader
-            label="일반공개"
-            emoji="🌐"
-            open={freeOpen}
-            onToggle={() => setFreeOpen((v) => !v)}
-            tone="brand"
-          />
+          <div
+            onMouseEnter={() => setFreeHover(true)}
+            onMouseLeave={() => setFreeHover(false)}
+          >
+            <SectionHeader
+              label="일반공개"
+              emoji="🌐"
+              open={freeOpen}
+              pinned={freePinned}
+              onToggle={() => setFreePinned((v) => !v)}
+              tone="brand"
+            />
 
-          {freeOpen && (
-            <div className="mb-4">
-              {CATEGORY_ORDER.map((category, idx) => {
+            {freeOpen && (
+              <div className="mb-4">
+                {CATEGORY_ORDER.map((category, idx) => {
                 const tools = groupedFree[category];
                 if (tools.length === 0) return null;
                 const meta = CATEGORY_META[category];
@@ -129,49 +141,56 @@ export default function Sidebar({
                   </div>
                 );
               })}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           {/* ━━━━━ 회원전용 섹션 ━━━━━ */}
-          <SectionHeader
-            label="회원전용"
-            emoji="⭐"
-            open={premiumOpen}
-            onToggle={() => setPremiumOpen((v) => !v)}
-            tone="premium"
-            locked={!isPremium}
-          />
+          <div
+            onMouseEnter={() => setPremiumHover(true)}
+            onMouseLeave={() => setPremiumHover(false)}
+          >
+            <SectionHeader
+              label="회원전용"
+              emoji="⭐"
+              open={premiumOpen}
+              pinned={premiumPinned}
+              onToggle={() => setPremiumPinned((v) => !v)}
+              tone="premium"
+              locked={!isPremium}
+            />
 
-          {premiumOpen && (
-            <div className="mb-4">
-              {CATEGORY_ORDER.map((category) => {
-                const tools = groupedPremium[category];
-                if (tools.length === 0) return null;
-                const meta = CATEGORY_META[category];
-                return (
-                  <div key={`premium-${category}`} className="mt-4">
-                    <div className="px-3 mb-2 flex items-center gap-2">
-                      <span className="text-base">{meta.emoji}</span>
-                      <span className="text-[13px] font-bold text-ink tracking-tight">
-                        {category}
-                      </span>
-                    </div>
+            {premiumOpen && (
+              <div className="mb-4">
+                {CATEGORY_ORDER.map((category) => {
+                  const tools = groupedPremium[category];
+                  if (tools.length === 0) return null;
+                  const meta = CATEGORY_META[category];
+                  return (
+                    <div key={`premium-${category}`} className="mt-4">
+                      <div className="px-3 mb-2 flex items-center gap-2">
+                        <span className="text-base">{meta.emoji}</span>
+                        <span className="text-[13px] font-bold text-ink tracking-tight">
+                          {category}
+                        </span>
+                      </div>
 
-                    <div className="ml-4 pl-3 border-l-2 border-premium/30 space-y-0.5">
-                      {tools.map((tool) => (
-                        <SidebarLink
-                          key={tool.slug}
-                          tool={tool}
-                          pathname={pathname}
-                          locked={!isPremium}
-                        />
-                      ))}
+                      <div className="ml-4 pl-3 border-l-2 border-premium/30 space-y-0.5">
+                        {tools.map((tool) => (
+                          <SidebarLink
+                            key={tool.slug}
+                            tool={tool}
+                            pathname={pathname}
+                            locked={!isPremium}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {isAdmin && (
             <>
@@ -204,6 +223,7 @@ function SectionHeader({
   label,
   emoji,
   open,
+  pinned,
   onToggle,
   tone,
   locked = false,
@@ -211,6 +231,7 @@ function SectionHeader({
   label: string;
   emoji: string;
   open: boolean;
+  pinned: boolean;
   onToggle: () => void;
   tone: "brand" | "premium";
   locked?: boolean;
@@ -234,6 +255,15 @@ function SectionHeader({
       {locked && (
         <span className="text-[10px] opacity-70" aria-label="locked">
           🔒
+        </span>
+      )}
+      {pinned && (
+        <span
+          className="text-[10px] opacity-80"
+          title="클릭으로 고정 해제"
+          aria-label="pinned"
+        >
+          📌
         </span>
       )}
       <svg
