@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+// GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
 const DOWNLOADS = {
   mac: {
-    url: "https://drive.google.com/file/d/15Sc5tnSAyQ0hcCt6yKTy8nQ7d--2jc5g/view?usp=sharing",
+    url: "https://github.com/inhwan0988/arkvvs-tools/releases/download/ark-clipper-v0.2.0/Ark.Clipper-0.2.0-arm64.dmg",
     available: true,
   },
   windows: {
-    url: "https://drive.google.com/file/d/1kycqzS3EgHfAr1HN4CUt9iwnTfd_LhdN/view?usp=sharing",
+    url: "https://github.com/inhwan0988/arkvvs-tools/releases/download/ark-clipper-v0.2.0/Ark.Clipper.Setup.0.2.0.exe",
     available: true,
   },
 } as const;
