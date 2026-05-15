@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   CATEGORY_ORDER,
   CATEGORY_META,
@@ -23,6 +23,10 @@ export default function Sidebar({
   const groupedFree = getToolsByCategory({ membersOnly: false });
   const groupedPremium = getToolsByCategory({ membersOnly: true });
   const { isOpen, close } = useSidebar();
+
+  // 두 큰 섹션 펼침/접힘 상태 (기본 둘 다 펼침)
+  const [freeOpen, setFreeOpen] = useState(true);
+  const [premiumOpen, setPremiumOpen] = useState(true);
 
   // 모바일에서 페이지 이동 시 드로어 자동 닫기
   useEffect(() => {
@@ -67,7 +71,7 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 p-3 overflow-y-auto min-w-[16rem]">
-          <div className="flex items-center gap-1 mb-1">
+          <div className="flex items-center gap-1 mb-3">
             <Link
               href="/"
               className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold transition ${
@@ -82,79 +86,92 @@ export default function Sidebar({
             <SidebarToggleButton />
           </div>
 
-          {CATEGORY_ORDER.map((category, idx) => {
-            const tools = groupedFree[category];
-            if (tools.length === 0) return null;
-            const meta = CATEGORY_META[category];
-            return (
-              <div key={category} className="mt-5">
-                <div className="px-3 mb-2 flex items-center gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-mute tracking-wider">
-                      STEP {idx + 1}
-                    </span>
+          {/* ━━━━━ 일반공개 섹션 ━━━━━ */}
+          <SectionHeader
+            label="일반공개"
+            emoji="🌐"
+            open={freeOpen}
+            onToggle={() => setFreeOpen((v) => !v)}
+            tone="brand"
+          />
+
+          {freeOpen && (
+            <div className="mb-4">
+              {CATEGORY_ORDER.map((category, idx) => {
+                const tools = groupedFree[category];
+                if (tools.length === 0) return null;
+                const meta = CATEGORY_META[category];
+                return (
+                  <div key={category} className="mt-4">
+                    <div className="px-3 mb-1.5 flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-mute tracking-wider">
+                        STEP {idx + 1}
+                      </span>
+                      <div className="h-px bg-line flex-1" />
+                    </div>
+                    <div className="px-3 mb-2 flex items-center gap-2">
+                      <span className="text-base">{meta.emoji}</span>
+                      <span className="text-[13px] font-bold text-ink tracking-tight">
+                        {category}
+                      </span>
+                    </div>
+
+                    <div className="ml-4 pl-3 border-l-2 border-line space-y-0.5">
+                      {tools.map((tool) => (
+                        <SidebarLink
+                          key={tool.slug}
+                          tool={tool}
+                          pathname={pathname}
+                          locked={false}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="h-px bg-line flex-1" />
-                </div>
-                <div className="px-3 mb-2.5 flex items-center gap-2">
-                  <span className="text-base">{meta.emoji}</span>
-                  <span className="text-[13px] font-bold text-ink tracking-tight">
-                    {category}
-                  </span>
-                </div>
+                );
+              })}
+            </div>
+          )}
 
-                <div className="ml-4 pl-3 border-l-2 border-line space-y-0.5">
-                  {tools.map((tool) => (
-                    <SidebarLink
-                      key={tool.slug}
-                      tool={tool}
-                      pathname={pathname}
-                      locked={false}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          {/* ━━━━━ 회원전용 섹션 ━━━━━ */}
+          <SectionHeader
+            label="회원전용"
+            emoji="⭐"
+            open={premiumOpen}
+            onToggle={() => setPremiumOpen((v) => !v)}
+            tone="premium"
+            locked={!isPremium}
+          />
 
-          {/* 회원전용 섹션 */}
-          <div className="mt-7 px-3 mb-2 flex items-center gap-2">
-            <span className="text-base">⭐</span>
-            <span className="text-[11px] font-bold text-premium tracking-wider">
-              회원전용
-            </span>
-            {!isPremium && (
-              <span className="text-[9px] font-bold text-mute">🔒</span>
-            )}
-            <div className="h-px bg-premium/30 flex-1" />
-          </div>
+          {premiumOpen && (
+            <div className="mb-4">
+              {CATEGORY_ORDER.map((category) => {
+                const tools = groupedPremium[category];
+                if (tools.length === 0) return null;
+                const meta = CATEGORY_META[category];
+                return (
+                  <div key={`premium-${category}`} className="mt-4">
+                    <div className="px-3 mb-2 flex items-center gap-2">
+                      <span className="text-base">{meta.emoji}</span>
+                      <span className="text-[13px] font-bold text-ink tracking-tight">
+                        {category}
+                      </span>
+                    </div>
 
-          {CATEGORY_ORDER.map((category) => {
-            const tools = groupedPremium[category];
-            if (tools.length === 0) return null;
-            const meta = CATEGORY_META[category];
-            return (
-              <div key={`premium-${category}`} className="mt-3">
-                <div className="px-3 mb-2 flex items-center gap-2">
-                  <span className="text-base">{meta.emoji}</span>
-                  <span className="text-[13px] font-bold text-ink tracking-tight">
-                    {category}
-                  </span>
-                </div>
-
-                <div className="ml-4 pl-3 border-l-2 border-premium/30 space-y-0.5">
-                  {tools.map((tool) => (
-                    <SidebarLink
-                      key={tool.slug}
-                      tool={tool}
-                      pathname={pathname}
-                      locked={!isPremium}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                    <div className="ml-4 pl-3 border-l-2 border-premium/30 space-y-0.5">
+                      {tools.map((tool) => (
+                        <SidebarLink
+                          key={tool.slug}
+                          tool={tool}
+                          pathname={pathname}
+                          locked={!isPremium}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {isAdmin && (
             <>
@@ -180,6 +197,55 @@ export default function Sidebar({
         </nav>
       </aside>
     </>
+  );
+}
+
+function SectionHeader({
+  label,
+  emoji,
+  open,
+  onToggle,
+  tone,
+  locked = false,
+}: {
+  label: string;
+  emoji: string;
+  open: boolean;
+  onToggle: () => void;
+  tone: "brand" | "premium";
+  locked?: boolean;
+}) {
+  const colorClasses =
+    tone === "premium"
+      ? open
+        ? "bg-premiumSoft text-premium border-premium/30"
+        : "bg-surface text-premium border-premium/20 hover:bg-premiumSoft/60"
+      : open
+        ? "bg-brandSoft text-brand border-brand/30"
+        : "bg-surface text-brand border-brand/20 hover:bg-brandSoft/60";
+
+  return (
+    <button
+      onClick={onToggle}
+      className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[13px] font-bold tracking-tight transition ${colorClasses}`}
+    >
+      <span className="text-base">{emoji}</span>
+      <span className="flex-1 text-left">{label}</span>
+      {locked && (
+        <span className="text-[10px] opacity-70" aria-label="locked">
+          🔒
+        </span>
+      )}
+      <svg
+        className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={3}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
   );
 }
 
