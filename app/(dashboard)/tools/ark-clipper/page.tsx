@@ -2,15 +2,17 @@ import Link from "next/link";
 
 const DOWNLOADS = {
   mac: {
-    url: "https://drive.google.com/file/d/1u7OsbVJyQRNZ-FY-1DniQzeGY1Qw19Aw/view?usp=sharing",
+    url: "https://drive.google.com/file/d/15Sc5tnSAyQ0hcCt6yKTy8nQ7d--2jc5g/view?usp=sharing",
     available: true,
   },
   windows: {
-    // Windows 빌드 검증 중 — 직원 PC에서 native module 빌드 후 재배포 예정
+    // Windows 빌드 v0.2.0 검증 중 — 직원 PC에서 native module 재빌드 진행
     url: "",
     available: false,
   },
 } as const;
+
+const APP_VERSION = "0.2.0";
 
 export default function ArkClipperPage() {
   return (
@@ -42,7 +44,26 @@ export default function ArkClipperPage() {
 
       {/* 다운로드 섹션 */}
       <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">📥 다운로드</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-ink">📥 다운로드</h2>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-brandSoft text-brand">
+            v{APP_VERSION}
+          </span>
+        </div>
+
+        {/* 변경사항 (v0.2.0) */}
+        <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
+          <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
+            ✨ NEW in v{APP_VERSION}
+          </p>
+          <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
+            <li>• 클립 개수 1~10개 직접 선택 가능</li>
+            <li>• AI 후킹 제목 더 강력하게 (검증된 패턴 적용)</li>
+            <li>• 자막 텍스트 직접 수정 가능 (인식 오류 보정)</li>
+            <li>• 세로크롭 자막 타이밍 동기화 버그 fix</li>
+          </ul>
+        </div>
+
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <DownloadCard
