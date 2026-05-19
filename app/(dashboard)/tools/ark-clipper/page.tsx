@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 // GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
+// arkvvs-tools 레포가 public이라 비로그인 사용자도 받을 수 있음
 const DOWNLOADS = {
   mac: {
     url: "https://github.com/inhwan0988/arkvvs-tools/releases/download/ark-clipper-v0.2.0/Ark.Clipper-0.2.0-arm64.dmg",
@@ -51,16 +52,18 @@ export default function ArkClipperPage() {
           </span>
         </div>
 
-        {/* 변경사항 (v0.2.0) */}
+        {/* 변경사항 (v0.2.0 — 2026-05-19 빌드) */}
         <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
           <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
-            ✨ NEW in v{APP_VERSION}
+            ✨ NEW in v{APP_VERSION} (2026-05-19 빌드)
           </p>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• 클립 개수 1~10개 직접 선택 가능</li>
-            <li>• AI 후킹 제목 더 강력하게 (검증된 패턴 적용)</li>
-            <li>• 자막 텍스트 직접 수정 가능 (인식 오류 보정)</li>
-            <li>• 세로크롭 자막 타이밍 동기화 버그 fix</li>
+            <li>• 한국어 폰트 번들 (미리보기 = 다운로드 결과 완벽 일치)</li>
+            <li>• 통합 편집 화면 (좌측 클립 목록 + 우측 편집 한 화면)</li>
+            <li>• 클립별 독립 설정 (한 클립 수정해도 다른 클립 영향 X)</li>
+            <li>• 자막 박스 너비/한 줄 글자수 직접 조정 (기본 13자)</li>
+            <li>• 자막 미리보기 더블클릭으로 텍스트 편집</li>
+            <li>• 0B 파일 자동 방어 + 영상별 개별 다운로드</li>
           </ul>
         </div>
 
