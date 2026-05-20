@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SearchFilters, VideoResult } from "./types";
 
 // 캐시 키: 키워드(소문자·trim) + 모든 필터를 결정적 직렬화
+// 새 필터 추가 시 반드시 키에 포함해야 다른 결과가 같은 key로 잘못 캐시되지 않음.
 export function buildCacheKey(
   keyword: string,
   filters: SearchFilters,
@@ -14,6 +15,14 @@ export function buildCacheKey(
     `cs=${filters.channelSize}`,
     `vf=${filters.videoFormat}`,
     `ds=${filters.deepSearch ? 1 : 0}`,
+    // v3 강화 필터
+    `vvs=${filters.minVvs ?? 0}`,
+    `er=${filters.minEngagementRate ?? 0}`,
+    `dr=${filters.durationRange ?? "any"}`,
+    `cap=${filters.captionsOnly ? 1 : 0}`,
+    `ex=${(filters.excludeKeywords ?? "").trim().toLowerCase().replace(/\s+/g, "")}`,
+    `sb=${filters.sortBy ?? "score"}`,
+    `mr=${filters.maxResults ?? 30}`,
   ].join("&");
   return `vvs:${k}::${f}`;
 }

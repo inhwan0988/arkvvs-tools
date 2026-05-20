@@ -72,6 +72,9 @@ const PERIOD_DAYS: Record<Period, number | null> = {
   all: null,
   "6m": 183,
   "1y": 365,
+  "3m": 90,
+  "1m": 30,
+  "1w": 7,
 };
 
 function recencyMult(publishedAt: string): number {
@@ -351,11 +354,53 @@ async function searchWithSingleKey(
     if (filters.videoFormat === "shorts" && !isShorts) continue;
     if (filters.videoFormat === "long" && isShorts) continue;
 
+    // v3 추가 필터: 영상 길이 범위 (더 세분화)
+    if (filters.durationRange && filters.durationRange !== "any") {
+      const min =
+        filters.durationRange === "under3"
+          ? 0
+          : filters.durationRange === "3to10"
+            ? 180
+            : filters.durationRange === "10to30"
+              ? 600
+              : 1800; // over30
+      const max =
+        filters.durationRange === "under3"
+          ? 180
+          : filters.durationRange === "3to10"
+            ? 600
+            : filters.durationRange === "10to30"
+              ? 1800
+              : Number.MAX_SAFE_INTEGER;
+      if (durationSec < min || durationSec > max) continue;
+    }
+
+    // v3: 자막 있는 영상만 (vvs-planner 흐름의 핵심 — 자막 없으면 Step 3 불가)
+    if (filters.captionsOnly && !hasCaption) continue;
+
     const vvs = subs > 0 ? views / subs : 0;
     const recMult = recencyMult(item.snippet.publishedAt);
     const eng = engagementMultiplier(likes, comments, views);
     const score =
       Math.round(vvs * recMult * eng.mult * 100) / 100;
+
+    // v3: VVS 최소 배수 필터
+    if (filters.minVvs && vvs < filters.minVvs) continue;
+
+    // v3: 참여율 최소 % 필터 (eng.rate은 비율, 0.01 = 1%)
+    if (filters.minEngagementRate && eng.rate * 100 < filters.minEngagementRate) {
+      continue;
+    }
+
+    // v3: 제외 키워드 필터
+    if (filters.excludeKeywords) {
+      const excludes = filters.excludeKeywords
+        .split(/[,\n]/)
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      const titleLc = item.snippet.title.toLowerCase();
+      if (excludes.some((kw) => titleLc.includes(kw))) continue;
+    }
 
     const thumb =
       item.snippet.thumbnails.maxres?.url ??
@@ -385,6 +430,23 @@ async function searchWithSingleKey(
     });
   }
 
-  results.sort((a, b) => b.score - a.score);
-  return results.slice(0, RETURN_TOP_N);
+  // v3: 정렬 옵션
+  const sortBy = filters.sortBy ?? "score";
+  if (sortBy === "vvs") {
+    results.sort((a, b) => b.vvs - a.vvs);
+  } else if (sortBy === "views") {
+    results.sort((a, b) => b.viewCount - a.viewCount);
+  } else if (sortBy === "date") {
+    results.sort(
+      (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
+    );
+  } else if (sortBy === "engagement") {
+    results.sort((a, b) => b.engagementRate - a.engagementRate);
+  } else {
+    results.sort((a, b) => b.score - a.score);
+  }
+
+  // v3: 결과 개수 (기본 30, 최대 100)
+  const limit = Math.min(100, Math.max(1, filters.maxResults ?? RETURN_TOP_N));
+  return results.slice(0, limit);
 }

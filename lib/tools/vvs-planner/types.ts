@@ -64,9 +64,21 @@ export interface ReferenceVideo {
 
 export type WizardStep = 1 | 2 | 3 | 4;
 
-export type Period = "all" | "6m" | "1y";
+export type Period = "all" | "6m" | "1y" | "3m" | "1m" | "1w";
 export type ChannelSize = "all" | "small" | "medium" | "large";
 export type VideoFormat = "all" | "long" | "shorts";
+export type DurationRange =
+  | "any"           // 제한 없음
+  | "under3"        // 3분 이하 (쇼츠)
+  | "3to10"         // 3-10분 (숏폼 롱폼)
+  | "10to30"        // 10-30분 (일반 롱폼)
+  | "over30";       // 30분+ (장편)
+export type SortBy =
+  | "score"         // 기본: 종합 점수 (vvs × recency × engagement)
+  | "vvs"           // 조회수/구독자 비율만
+  | "views"         // 절대 조회수
+  | "date"          // 최신순
+  | "engagement";   // 참여율 (좋아요+댓글/조회수)
 
 export interface SearchFilters {
   period: Period;
@@ -74,4 +86,12 @@ export interface SearchFilters {
   channelSize: ChannelSize;
   videoFormat: VideoFormat;
   deepSearch: boolean;
+  // v3 강화 필터 (모두 optional — 기본값 = 비활성)
+  minVvs?: number;            // 조회수/구독자 최소 배수 (예: 3 = 3배 이상)
+  minEngagementRate?: number; // 참여율 최소 % (예: 1 = 1% 이상)
+  durationRange?: DurationRange;
+  captionsOnly?: boolean;     // 자막 있는 영상만 (vvs-planner 흐름의 필수 조건)
+  excludeKeywords?: string;   // 쉼표 구분 ("광고, 협찬, 광고문의")
+  sortBy?: SortBy;
+  maxResults?: number;        // 반환 결과 개수 (기본 30, 옵션: 10/20/50/100)
 }

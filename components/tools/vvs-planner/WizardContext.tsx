@@ -11,8 +11,10 @@ import {
 import type {
   ChannelProfile,
   ChannelSize,
+  DurationRange,
   Period,
   SearchFilters,
+  SortBy,
   Topic,
   VideoFormat,
   VideoResult,
@@ -45,6 +47,13 @@ type Actions = {
   setChannelSize: (c: ChannelSize) => void;
   setVideoFormat: (f: VideoFormat) => void;
   setDeepSearch: (b: boolean) => void;
+  setMinVvs: (v: number) => void;
+  setMinEngagementRate: (v: number) => void;
+  setDurationRange: (d: DurationRange) => void;
+  setCaptionsOnly: (b: boolean) => void;
+  setExcludeKeywords: (s: string) => void;
+  setSortBy: (s: SortBy) => void;
+  setMaxResults: (n: number) => void;
   setVideos: (vs: VideoResult[]) => void;
   setSelectedVideo: (v: VideoResult | null) => void;
   setTranscript: (t: string | null) => void;
@@ -72,6 +81,14 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [channelSize, setChannelSize] = useState<ChannelSize>("all");
   const [videoFormat, setVideoFormat] = useState<VideoFormat>("all");
   const [deepSearch, setDeepSearch] = useState(false);
+  // v3 강화 필터
+  const [minVvs, setMinVvs] = useState(0);
+  const [minEngagementRate, setMinEngagementRate] = useState(0);
+  const [durationRange, setDurationRange] = useState<DurationRange>("any");
+  const [captionsOnly, setCaptionsOnly] = useState(false);
+  const [excludeKeywords, setExcludeKeywords] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("score");
+  const [maxResults, setMaxResults] = useState(30);
   const [videos, setVideos] = useState<VideoResult[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoResult | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
@@ -118,6 +135,13 @@ export function WizardProvider({ children }: { children: ReactNode }) {
         channelSize,
         videoFormat,
         deepSearch,
+        minVvs,
+        minEngagementRate,
+        durationRange,
+        captionsOnly,
+        excludeKeywords,
+        sortBy,
+        maxResults,
       } as SearchFilters,
       videos,
       selectedVideo,
@@ -137,6 +161,13 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       setChannelSize,
       setVideoFormat,
       setDeepSearch,
+      setMinVvs,
+      setMinEngagementRate,
+      setDurationRange,
+      setCaptionsOnly,
+      setExcludeKeywords,
+      setSortBy,
+      setMaxResults,
       setVideos,
       setSelectedVideo,
       setTranscript,
@@ -161,6 +192,13 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       channelSize,
       videoFormat,
       deepSearch,
+      minVvs,
+      minEngagementRate,
+      durationRange,
+      captionsOnly,
+      excludeKeywords,
+      sortBy,
+      maxResults,
       videos,
       selectedVideo,
       transcript,

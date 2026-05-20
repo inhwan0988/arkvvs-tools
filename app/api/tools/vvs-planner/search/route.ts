@@ -8,8 +8,10 @@ import {
 } from "@/lib/tools/vvs-planner/cache";
 import type {
   ChannelSize,
+  DurationRange,
   Period,
   SearchFilters,
+  SortBy,
   VideoFormat,
 } from "@/lib/tools/vvs-planner/types";
 
@@ -22,6 +24,14 @@ type Body = {
   videoFormat?: VideoFormat;
   deepSearch?: boolean;
   bypassCache?: boolean;
+  // v3 강화 필터
+  minVvs?: number;
+  minEngagementRate?: number;
+  durationRange?: DurationRange;
+  captionsOnly?: boolean;
+  excludeKeywords?: string;
+  sortBy?: SortBy;
+  maxResults?: number;
 };
 
 export async function POST(req: NextRequest) {
@@ -54,6 +64,14 @@ export async function POST(req: NextRequest) {
     channelSize: body.channelSize ?? "all",
     videoFormat: body.videoFormat ?? "all",
     deepSearch: body.deepSearch ?? false,
+    // v3 강화
+    minVvs: body.minVvs,
+    minEngagementRate: body.minEngagementRate,
+    durationRange: body.durationRange,
+    captionsOnly: body.captionsOnly,
+    excludeKeywords: body.excludeKeywords,
+    sortBy: body.sortBy,
+    maxResults: body.maxResults,
   };
 
   // ─── 캐시 조회 (24h TTL) ─────────────────────────
