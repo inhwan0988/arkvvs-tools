@@ -90,17 +90,6 @@ export const TOOLS: Tool[] = [
     color: "bg-dangerSoft",
     category: "콘텐츠 활용",
   },
-  {
-    slug: "spread",
-    name: "Spread",
-    description: "Meta · Instagram 자동 게시 도구 (Arc Publisher)",
-    emoji: "📢",
-    href: "https://spread-joshua-2770s-projects.vercel.app",
-    status: "live",
-    color: "bg-warnSoft",
-    category: "콘텐츠 활용",
-    external: true,
-  },
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 회원전용 (premium tier만 접근 가능 — 관리자가 사용자 관리에서 부여)
@@ -147,14 +136,15 @@ export const TOOLS: Tool[] = [
 
   // ━━━ 콘텐츠 활용 (회원전용) ━━━
   {
-    slug: "premium-content-soon",
-    name: "준비 중",
-    description: "회원전용 콘텐츠 활용 툴이 곧 추가됩니다.",
+    slug: "spread",
+    name: "Spread",
+    description: "Meta · Instagram 자동 게시 도구 (Arc Publisher)",
     emoji: "📢",
-    href: "#",
-    status: "soon",
+    href: "https://spread-joshua-2770s-projects.vercel.app",
+    status: "live",
     color: "bg-premiumSoft",
     category: "콘텐츠 활용",
+    external: true,
     membersOnly: true,
   },
 ];
