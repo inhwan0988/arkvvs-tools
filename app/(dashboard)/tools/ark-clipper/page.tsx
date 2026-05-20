@@ -1,19 +1,23 @@
 import Link from "next/link";
 
 // GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
-// arkvvs-tools 레포가 public이라 비로그인 사용자도 받을 수 있음
+// ark-clipper- 레포가 public이라 비로그인 사용자도 받을 수 있음
 const DOWNLOADS = {
   mac: {
-    url: "https://github.com/inhwan0988/arkvvs-tools/releases/download/ark-clipper-v0.2.0/Ark.Clipper-0.2.0-arm64.dmg",
+    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.14/Ark-Clipper-0.2.14-arm64.dmg",
+    available: true,
+  },
+  macIntel: {
+    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.14/Ark-Clipper-0.2.14.dmg",
     available: true,
   },
   windows: {
-    url: "https://github.com/inhwan0988/arkvvs-tools/releases/download/ark-clipper-v0.2.0/Ark.Clipper.Setup.0.2.0.exe",
+    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.14/Ark-Clipper-Setup-0.2.14.exe",
     available: true,
   },
 } as const;
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.2.14";
 
 export default function ArkClipperPage() {
   return (
@@ -52,34 +56,43 @@ export default function ArkClipperPage() {
           </span>
         </div>
 
-        {/* 변경사항 (v0.2.0 — 2026-05-19 빌드) */}
+        {/* 변경사항 (v0.2.14 — 2026-05-20 빌드) */}
         <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
           <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
-            ✨ NEW in v{APP_VERSION} (2026-05-19 빌드)
+            ✨ NEW in v{APP_VERSION} (2026-05-20 빌드)
           </p>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• 한국어 폰트 번들 (미리보기 = 다운로드 결과 완벽 일치)</li>
-            <li>• 통합 편집 화면 (좌측 클립 목록 + 우측 편집 한 화면)</li>
-            <li>• 클립별 독립 설정 (한 클립 수정해도 다른 클립 영향 X)</li>
-            <li>• 자막 박스 너비/한 줄 글자수 직접 조정 (기본 13자)</li>
-            <li>• 자막 미리보기 더블클릭으로 텍스트 편집</li>
-            <li>• 0B 파일 자동 방어 + 영상별 개별 다운로드</li>
+            <li>• <b>자동 업데이트 시작 ✨</b> — 이번이 <b>마지막 수동 다운로드</b>. 다음부터 앱이 백그라운드로 받아서 클릭 한 번에 적용</li>
+            <li>• <b>Mac Intel(x64) 정식 지원</b> — 이제 Intel Mac도 다운로드 가능</li>
+            <li>• Windows 한국어 자막 □□□ 깨짐 완전 해결</li>
+            <li>• 다운로드 시 검정 화면 뜨던 버그 fix</li>
+            <li>• 첫 실행 시 SmartScreen/Gatekeeper 우회 가이드 자동 표시</li>
+            <li>• 친화적 한국어 에러 메시지 + 앱 내 로그 파일 열기 버튼</li>
+            <li>• 예상치 못한 오류 자동 감지 + 안내 다이얼로그</li>
           </ul>
         </div>
 
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <DownloadCard
-            os="Mac"
+            os="Mac (Apple Silicon)"
             emoji="💻"
-            description="Apple Silicon (M1/M2/M3/M4)"
+            description="M1 / M2 / M3 / M4"
             url={DOWNLOADS.mac.url}
             available={DOWNLOADS.mac.available}
             filename=".dmg"
           />
           <DownloadCard
-            os="Windows"
+            os="Mac (Intel)"
             emoji="🖥️"
+            description="Intel x64 Mac"
+            url={DOWNLOADS.macIntel.url}
+            available={DOWNLOADS.macIntel.available}
+            filename=".dmg"
+          />
+          <DownloadCard
+            os="Windows"
+            emoji="🪟"
             description="Windows 10/11 64bit"
             url={DOWNLOADS.windows.url}
             available={DOWNLOADS.windows.available}
@@ -89,7 +102,7 @@ export default function ArkClipperPage() {
 
         <p className="mt-3 text-xs text-mute">
           모든 영상 처리는 본인 PC에서 진행되어 개인정보 유출 위험이 없습니다.
-          설치 파일 약 220~320MB. Intel Mac 사용자는 별도 안내드릴게요.
+          설치 파일 약 320~335MB. <b>자동 업데이트 지원</b> — 이번 한 번만 받으면 다음부터 앱이 알아서 새 버전을 가져와요.
         </p>
       </section>
 
