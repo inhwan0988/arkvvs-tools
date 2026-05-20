@@ -4,20 +4,20 @@ import Link from "next/link";
 // ark-clipper- 레포가 public이라 비로그인 사용자도 받을 수 있음
 const DOWNLOADS = {
   mac: {
-    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.14/Ark-Clipper-0.2.14-arm64.dmg",
+    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.15/Ark-Clipper-0.2.15-arm64.dmg",
     available: true,
   },
   macIntel: {
-    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.14/Ark-Clipper-0.2.14.dmg",
+    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.15/Ark-Clipper-0.2.15.dmg",
     available: true,
   },
   windows: {
-    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.14/Ark-Clipper-Setup-0.2.14.exe",
+    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.15/Ark-Clipper-Setup-0.2.15.exe",
     available: true,
   },
 } as const;
 
-const APP_VERSION = "0.2.14";
+const APP_VERSION = "0.2.15";
 
 export default function ArkClipperPage() {
   return (
@@ -56,19 +56,19 @@ export default function ArkClipperPage() {
           </span>
         </div>
 
-        {/* 변경사항 (v0.2.14 — 2026-05-20 빌드) */}
+        {/* 변경사항 (v0.2.15 — 2026-05-20 빌드) */}
         <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
           <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
             ✨ NEW in v{APP_VERSION} (2026-05-20 빌드)
           </p>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
+            <li>• <b>Mac &ldquo;손상되었습니다&rdquo; 메시지 해결</b> (ad-hoc 서명 적용)</li>
             <li>• <b>자동 업데이트 시작 ✨</b> — 이번이 <b>마지막 수동 다운로드</b>. 다음부터 앱이 백그라운드로 받아서 클릭 한 번에 적용</li>
             <li>• <b>Mac Intel(x64) 정식 지원</b> — 이제 Intel Mac도 다운로드 가능</li>
             <li>• Windows 한국어 자막 □□□ 깨짐 완전 해결</li>
             <li>• 다운로드 시 검정 화면 뜨던 버그 fix</li>
             <li>• 첫 실행 시 SmartScreen/Gatekeeper 우회 가이드 자동 표시</li>
             <li>• 친화적 한국어 에러 메시지 + 앱 내 로그 파일 열기 버튼</li>
-            <li>• 예상치 못한 오류 자동 감지 + 안내 다이얼로그</li>
           </ul>
         </div>
 
