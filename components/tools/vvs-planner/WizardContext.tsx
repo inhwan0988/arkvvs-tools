@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type {
+  ChannelProfile,
   ChannelSize,
   Period,
   SearchFilters,
@@ -32,6 +33,9 @@ type State = {
   error: string | null;
   youtubeApiKey: string;
   anthropicApiKey: string;
+  // v2 personalization
+  channelProfile: ChannelProfile | null;
+  referenceVideoUrls: string[];
 };
 
 type Actions = {
@@ -54,6 +58,8 @@ type Actions = {
   reset: () => void;
   setYoutubeApiKey: (k: string) => void;
   setAnthropicApiKey: (k: string) => void;
+  setChannelProfile: (p: ChannelProfile | null) => void;
+  setReferenceVideoUrls: (urls: string[]) => void;
 };
 
 const Ctx = createContext<(State & Actions) | null>(null);
@@ -76,6 +82,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [youtubeApiKey, setYoutubeApiKey] = useState("");
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
+  const [channelProfile, setChannelProfile] = useState<ChannelProfile | null>(null);
+  const [referenceVideoUrls, setReferenceVideoUrls] = useState<string[]>([]);
 
   const appendScript = useCallback(
     (chunk: string) => setScript((s) => s + chunk),
@@ -121,6 +129,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       error,
       youtubeApiKey,
       anthropicApiKey,
+      channelProfile,
+      referenceVideoUrls,
       setKeyword,
       setPeriod,
       setMinViews,
@@ -140,6 +150,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       reset,
       setYoutubeApiKey,
       setAnthropicApiKey,
+      setChannelProfile,
+      setReferenceVideoUrls,
     }),
     [
       step,
@@ -159,6 +171,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       error,
       youtubeApiKey,
       anthropicApiKey,
+      channelProfile,
+      referenceVideoUrls,
       appendScript,
       goToStep,
       reset,

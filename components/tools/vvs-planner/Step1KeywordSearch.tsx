@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useWizard } from "./WizardContext";
 import VideoCard from "./VideoCard";
+import ChannelProfileCard from "./ChannelProfileCard";
+import ReferenceVideosInput from "./ReferenceVideosInput";
 import type {
   ChannelSize,
   Period,
@@ -104,6 +106,8 @@ export default function Step1KeywordSearch() {
 
   return (
     <div>
+      <ChannelProfileCard />
+      <ReferenceVideosInput />
       <div className="flex gap-2">
         <input
           type="text"

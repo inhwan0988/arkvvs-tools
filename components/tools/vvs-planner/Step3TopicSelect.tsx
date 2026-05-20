@@ -19,6 +19,8 @@ export default function Step3TopicSelect() {
     setError,
     goToStep,
     anthropicApiKey,
+    channelProfile,
+    referenceVideoUrls,
   } = useWizard();
 
   const [phase, setPhase] = useState<"transcript" | "topics" | "done">(
@@ -56,6 +58,9 @@ export default function Step3TopicSelect() {
           videoTitle: selectedVideo.title,
           channelTitle: selectedVideo.channelTitle,
           anthropicApiKey,
+          // v2 personalization
+          channelProfile,
+          referenceVideoUrls,
         }),
         signal,
       });

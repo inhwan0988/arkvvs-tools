@@ -2,14 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
 import { buildTopicPrompt } from "@/lib/tools/vvs-planner/prompts";
-import type { Topic } from "@/lib/tools/vvs-planner/types";
+import { getTranscript } from "@/lib/tools/vvs-planner/transcript";
+import type { ChannelProfile, ReferenceVideo, Topic } from "@/lib/tools/vvs-planner/types";
+
+// youtube-transcript는 Node 런타임 필요
+export const runtime = "nodejs";
 
 type Body = {
   transcript?: string;
   videoTitle?: string;
   channelTitle?: string;
   anthropicApiKey?: string;
+  // v2 personalization
+  channelProfile?: ChannelProfile | null;
+  referenceVideoUrls?: string[];
 };
+
+function extractVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const m = u.pathname.match(/\/shorts\/([\w-]+)/);
+    if (m) return m[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchReferenceVideos(urls: string[]): Promise<ReferenceVideo[]> {
+  if (!urls || urls.length === 0) return [];
+  const results: ReferenceVideo[] = [];
+  for (const url of urls.slice(0, 3)) {
+    const videoId = extractVideoId(url);
+    if (!videoId) continue;
+    try {
+      const tr = await getTranscript(videoId);
+      if (tr?.transcript) {
+        results.push({
+          videoId,
+          transcriptSample: tr.transcript.slice(0, 1500),
+        });
+      }
+    } catch {
+      // 자막 추출 실패하면 skip — 본 흐름에 영향 X
+    }
+  }
+  return results;
+}
 
 export async function POST(req: NextRequest) {
   const supabase = createClient();
@@ -46,7 +88,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const prompt = buildTopicPrompt(transcript, videoTitle, channelTitle);
+    // 레퍼런스 영상 자막 추출 (선택, 실패해도 본 흐름 영향 X)
+    const referenceVideos = body.referenceVideoUrls
+      ? await fetchReferenceVideos(body.referenceVideoUrls)
+      : [];
+
+    const prompt = buildTopicPrompt(transcript, videoTitle, channelTitle, {
+      channelProfile: body.channelProfile || null,
+      referenceVideos,
+    });
     const raw = await generateTopicsRaw(apiKey, prompt);
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) throw new Error("AI 응답에서 JSON을 파싱할 수 없습니다.");

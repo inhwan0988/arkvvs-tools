@@ -2,13 +2,51 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { streamClaudeText } from "@/lib/tools/vvs-planner/claude";
 import { buildScriptPrompt } from "@/lib/tools/vvs-planner/prompts";
+import { getTranscript } from "@/lib/tools/vvs-planner/transcript";
+import type { ChannelProfile, ReferenceVideo } from "@/lib/tools/vvs-planner/types";
+
+// youtube-transcript는 Node 런타임 필요
+export const runtime = "nodejs";
 
 type Body = {
   topic?: { title: string; description: string; angle: string };
   transcript?: string;
   videoTitle?: string;
   anthropicApiKey?: string;
+  channelProfile?: ChannelProfile | null;
+  referenceVideoUrls?: string[];
 };
+
+function extractVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const m = u.pathname.match(/\/shorts\/([\w-]+)/);
+    if (m) return m[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchReferenceVideos(urls: string[]): Promise<ReferenceVideo[]> {
+  const out: ReferenceVideo[] = [];
+  for (const url of (urls || []).slice(0, 3)) {
+    const id = extractVideoId(url);
+    if (!id) continue;
+    try {
+      const tr = await getTranscript(id);
+      if (tr?.transcript) {
+        out.push({ videoId: id, transcriptSample: tr.transcript.slice(0, 1500) });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return out;
+}
 
 function jsonError(msg: string, status: number) {
   return new Response(JSON.stringify({ error: msg }), {
@@ -40,7 +78,13 @@ export async function POST(req: NextRequest) {
   if (!apiKey) return jsonError("Anthropic API 키가 필요합니다.", 400);
 
   try {
-    const prompt = buildScriptPrompt(topic, transcript, videoTitle);
+    const referenceVideos = body.referenceVideoUrls
+      ? await fetchReferenceVideos(body.referenceVideoUrls)
+      : [];
+    const prompt = buildScriptPrompt(topic, transcript, videoTitle, {
+      channelProfile: body.channelProfile || null,
+      referenceVideos,
+    });
     const stream = await streamClaudeText(apiKey, prompt);
     return new Response(stream, {
       headers: {
