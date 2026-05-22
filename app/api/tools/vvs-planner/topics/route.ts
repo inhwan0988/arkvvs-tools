@@ -32,6 +32,59 @@ function extractVideoId(url: string): string | null {
   }
 }
 
+/**
+ * Claude의 JSON 응답을 robust하게 parse.
+ * 1차: 그대로 parse
+ * 2차: 잘린 응답 복구 (마지막 incomplete object 잘라내고 ] 닫기)
+ * 3차: trailing comma 제거 후 재시도
+ * 4차: 모두 실패 시 원본 에러 throw + 응답 일부 로깅
+ */
+function parseTopicsRobust(raw: string): Topic[] {
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) {
+    // ] 가 없으면 [ 부터 시작해서 마지막 } 까지 자르고 ] 추가
+    const start = raw.indexOf("[");
+    const lastBrace = raw.lastIndexOf("}");
+    if (start < 0 || lastBrace < 0) {
+      throw new Error("AI 응답에서 JSON 배열을 찾지 못했습니다.");
+    }
+    const reconstructed = raw.slice(start, lastBrace + 1) + "]";
+    return JSON.parse(reconstructed) as Topic[];
+  }
+  const text = match[0];
+  // 1차
+  try {
+    return JSON.parse(text) as Topic[];
+  } catch (e1) {
+    // 2차: 잘린 응답 복구 — 마지막 valid object 종료 위치까지 잘라서 닫기
+    const lastValidEnd = text.lastIndexOf("},");
+    if (lastValidEnd > 0) {
+      const truncated = text.slice(0, lastValidEnd + 1) + "]";
+      try {
+        return JSON.parse(truncated) as Topic[];
+      } catch {
+        /* next */
+      }
+    }
+    // 3차: trailing comma 제거
+    try {
+      const cleaned = text
+        .replace(/,(\s*[}\]])/g, "$1")
+        .replace(/,\s*$/, "");
+      return JSON.parse(cleaned) as Topic[];
+    } catch {
+      /* fall through */
+    }
+    // 4차: 모든 시도 실패 — 진단용 로그 + 원본 에러
+    console.error("[topics] JSON parse failed:", e1);
+    console.error("[topics] raw response (last 500 chars):", text.slice(-500));
+    throw new Error(
+      "AI 응답 형식이 올바르지 않아 주제를 파싱하지 못했어요. 다시 시도해주세요. " +
+        "(반복되면 다른 영상으로 시도)",
+    );
+  }
+}
+
 async function fetchReferenceVideos(urls: string[]): Promise<ReferenceVideo[]> {
   if (!urls || urls.length === 0) return [];
   const results: ReferenceVideo[] = [];
@@ -98,9 +151,7 @@ export async function POST(req: NextRequest) {
       referenceVideos,
     });
     const raw = await generateTopicsRaw(apiKey, prompt);
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) throw new Error("AI 응답에서 JSON을 파싱할 수 없습니다.");
-    const topics = JSON.parse(match[0]) as Topic[];
+    const topics = parseTopicsRobust(raw);
     if (!Array.isArray(topics) || topics.length === 0) {
       throw new Error("생성된 주제가 없습니다.");
     }

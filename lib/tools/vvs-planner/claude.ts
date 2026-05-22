@@ -14,7 +14,8 @@ export async function generateTopicsRaw(
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 4096,
+      // v2 풍부 prompt(주제 카드 메타데이터 8개 필드)에 대응 — 4096이면 응답 잘림.
+      max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     }),
   });
