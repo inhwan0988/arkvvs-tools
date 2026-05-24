@@ -22,13 +22,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "차단된 계정입니다." }, { status: 403 });
   }
 
-  const { videoId } = (await req.json()) as { videoId?: string };
+  const body = (await req.json()) as {
+    videoId?: string;
+    youtubeApiKey?: string;
+  };
+  const videoId = body.videoId;
   if (!videoId) {
     return NextResponse.json({ error: "영상 ID가 필요합니다." }, { status: 400 });
   }
+  const youtubeApiKey = body.youtubeApiKey?.trim() || process.env.YOUTUBE_API_KEY;
 
   try {
-    const result = await getTranscript(videoId);
+    const result = await getTranscript(videoId, youtubeApiKey);
     return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "자막 추출 중 오류가 발생했습니다.";

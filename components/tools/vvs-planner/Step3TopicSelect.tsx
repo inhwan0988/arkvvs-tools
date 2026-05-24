@@ -19,6 +19,7 @@ export default function Step3TopicSelect() {
     setError,
     goToStep,
     anthropicApiKey,
+    youtubeApiKey,
     channelProfile,
     referenceVideoUrls,
   } = useWizard();
@@ -29,6 +30,10 @@ export default function Step3TopicSelect() {
   const [elapsed, setElapsed] = useState(0);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualText, setManualText] = useState("");
+  // 자막/description 어디서 가져왔는지 사용자에게 표시 (투명성)
+  const [transcriptSource, setTranscriptSource] = useState<
+    "captions" | "description" | "captions+description" | null
+  >(null);
 
   useEffect(() => {
     if (!isLoading) {
@@ -93,7 +98,11 @@ export default function Step3TopicSelect() {
         const tRes = await fetch("/api/tools/vvs-planner/transcript", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ videoId: selectedVideo.videoId }),
+          // youtubeApiKey 전달 → description fallback 활성화
+          body: JSON.stringify({
+            videoId: selectedVideo.videoId,
+            youtubeApiKey,
+          }),
           signal: ctrl.signal,
         });
         if (!tRes.ok) {
@@ -103,9 +112,13 @@ export default function Step3TopicSelect() {
             { cause: "transcript" },
           );
         }
-        const tData = (await tRes.json()) as { transcript: string };
+        const tData = (await tRes.json()) as {
+          transcript: string;
+          source?: "captions" | "description" | "captions+description";
+        };
         if (ctrl.signal.aborted) return;
         setTranscript(tData.transcript);
+        setTranscriptSource(tData.source ?? null);
 
         await generateTopics(tData.transcript, ctrl.signal);
       } catch (e) {
@@ -215,6 +228,26 @@ export default function Step3TopicSelect() {
               ← 영상 확인
             </button>
           </div>
+          {transcriptSource && (
+            <div className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+              <span className="text-mute">분석 소스:</span>
+              {transcriptSource === "captions" && (
+                <span className="px-1.5 py-0.5 bg-success/15 text-success rounded">
+                  영상 자막
+                </span>
+              )}
+              {transcriptSource === "description" && (
+                <span className="px-1.5 py-0.5 bg-warn/15 text-warn rounded">
+                  영상 설명란 (자막 없음)
+                </span>
+              )}
+              {transcriptSource === "captions+description" && (
+                <span className="px-1.5 py-0.5 bg-brand/15 text-brand rounded">
+                  자막 + 설명란 통합
+                </span>
+              )}
+            </div>
+          )}
           <p className="mb-6 text-sm text-sub">
             마음에 드는 주제를 선택한 후 대본 생성을 진행하세요.
           </p>
