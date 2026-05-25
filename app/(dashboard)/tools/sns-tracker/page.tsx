@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import YoutubeSyncButton from "@/components/tools/sns-tracker/YoutubeSyncButton";
 import SummaryCards from "@/components/tools/sns-tracker/SummaryCards";
 import RegisterForm from "@/components/tools/sns-tracker/RegisterForm";
 import ContentList from "@/components/tools/sns-tracker/ContentList";
@@ -64,12 +65,15 @@ export default function SnsTrackerPage() {
               각 SNS에 게시한 콘텐츠 + 단축 URL → 실시간 클릭 / 전환율 / AI 주간 분석.
             </p>
           </div>
-          <a
-            href="#how"
-            className="text-[12px] text-brand font-semibold hover:underline"
-          >
-            ❓ 사용법
-          </a>
+          <div className="flex items-center gap-2">
+            <YoutubeSyncButton onSynced={fetchContents} />
+            <a
+              href="#how"
+              className="text-[12px] text-brand font-semibold hover:underline"
+            >
+              ❓ 사용법
+            </a>
+          </div>
         </header>
 
         {err && (
