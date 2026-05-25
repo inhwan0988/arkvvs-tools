@@ -5,6 +5,7 @@ import { useWizard } from "./WizardContext";
 import TopicCard from "./TopicCard";
 import VideoAnalysisCard from "./VideoAnalysisCard";
 import UserIntentInput from "./UserIntentInput";
+import SelectedVideoBanner from "./SelectedVideoBanner";
 import type { Topic, VideoAnalysis } from "@/lib/tools/vvs-planner/types";
 
 export default function Step3TopicSelect() {
@@ -304,6 +305,9 @@ export default function Step3TopicSelect() {
       {/* ready 단계: 영상 분석 카드 + 의도 입력 + 주제 생성 버튼 */}
       {!isLoading && !error && phase === "ready" && videoAnalysis && (
         <div className="space-y-4">
+          {/* 선택한 영상 정보 (썸네일 + 제목) — 상단 고정 */}
+          {selectedVideo && <SelectedVideoBanner video={selectedVideo} />}
+
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-ink">
@@ -360,6 +364,9 @@ export default function Step3TopicSelect() {
 
       {!isLoading && !error && topics.length > 0 && (
         <>
+          {/* 선택한 영상 정보 — AI 추천과 비교 가능 */}
+          {selectedVideo && <SelectedVideoBanner video={selectedVideo} />}
+
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold text-ink">
               AI가 제안하는 주제 10개
