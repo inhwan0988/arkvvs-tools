@@ -16,6 +16,8 @@ import type {
   SearchFilters,
   SortBy,
   Topic,
+  UserIntent,
+  VideoAnalysis,
   VideoFormat,
   VideoResult,
   WizardStep,
@@ -38,6 +40,9 @@ type State = {
   // v2 personalization
   channelProfile: ChannelProfile | null;
   referenceVideoUrls: string[];
+  // v3: 영상 분석 + 사용자 의도
+  videoAnalysis: VideoAnalysis | null;
+  userIntent: UserIntent;
 };
 
 type Actions = {
@@ -69,6 +74,8 @@ type Actions = {
   setAnthropicApiKey: (k: string) => void;
   setChannelProfile: (p: ChannelProfile | null) => void;
   setReferenceVideoUrls: (urls: string[]) => void;
+  setVideoAnalysis: (v: VideoAnalysis | null) => void;
+  setUserIntent: (u: UserIntent) => void;
 };
 
 const Ctx = createContext<(State & Actions) | null>(null);
@@ -101,6 +108,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [channelProfile, setChannelProfile] = useState<ChannelProfile | null>(null);
   const [referenceVideoUrls, setReferenceVideoUrls] = useState<string[]>([]);
+  const [videoAnalysis, setVideoAnalysis] = useState<VideoAnalysis | null>(null);
+  const [userIntent, setUserIntent] = useState<UserIntent>({ freeText: "" });
 
   const appendScript = useCallback(
     (chunk: string) => setScript((s) => s + chunk),
@@ -123,6 +132,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setScript("");
     setError(null);
     setLoading(false);
+    setVideoAnalysis(null);
+    setUserIntent({ freeText: "" });
   }, []);
 
   const value = useMemo(
@@ -155,6 +166,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       anthropicApiKey,
       channelProfile,
       referenceVideoUrls,
+      videoAnalysis,
+      userIntent,
       setKeyword,
       setPeriod,
       setMinViews,
@@ -183,6 +196,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       setAnthropicApiKey,
       setChannelProfile,
       setReferenceVideoUrls,
+      setVideoAnalysis,
+      setUserIntent,
     }),
     [
       step,
@@ -211,6 +226,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       anthropicApiKey,
       channelProfile,
       referenceVideoUrls,
+      videoAnalysis,
+      userIntent,
       appendScript,
       goToStep,
       reset,

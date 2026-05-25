@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
 import { buildTopicPrompt } from "@/lib/tools/vvs-planner/prompts";
 import { getTranscript } from "@/lib/tools/vvs-planner/transcript";
-import type { ChannelProfile, ReferenceVideo, Topic } from "@/lib/tools/vvs-planner/types";
+import type { ChannelProfile, ReferenceVideo, Topic, UserIntent } from "@/lib/tools/vvs-planner/types";
 
 // youtube-transcript는 Node 런타임 필요
 export const runtime = "nodejs";
@@ -16,6 +16,8 @@ type Body = {
   // v2 personalization
   channelProfile?: ChannelProfile | null;
   referenceVideoUrls?: string[];
+  // v3: 사용자 의도
+  userIntent?: UserIntent | null;
 };
 
 function extractVideoId(url: string): string | null {
@@ -149,6 +151,7 @@ export async function POST(req: NextRequest) {
     const prompt = buildTopicPrompt(transcript, videoTitle, channelTitle, {
       channelProfile: body.channelProfile || null,
       referenceVideos,
+      userIntent: body.userIntent || null,
     });
     const raw = await generateTopicsRaw(apiKey, prompt);
     const topics = parseTopicsRobust(raw);

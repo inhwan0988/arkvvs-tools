@@ -62,6 +62,48 @@ export interface ReferenceVideo {
   transcriptSample?: string;     // 첫 1000자 정도
 }
 
+/**
+ * 영상 구조 분석 결과 — Step 3 상단에 카드로 표시.
+ * 사용자가 영상의 핵심을 한눈에 파악 + 어디 영감받았는지 명확히 인지.
+ */
+export interface VideoAnalysis {
+  /** 한 줄 핵심 요약 (예: "재개발 손해 보는 패턴 분석") */
+  coreTheme: string;
+  /** 영상 구조 */
+  structure: {
+    intro: string;          // 인트로 한 줄
+    mainPoints: string[];   // 본론 핵심 포인트 2-4개
+    conclusion: string;     // 결론 / CTA
+  };
+  /** 사용된 후킹 패턴 (예: ["충격 오프닝", "숫자 활용", "전문가 발언"]) */
+  hookPatterns: string[];
+  /** 타겟 시청자 (예: "재개발 투자 고민하는 30-50대") */
+  targetAudience: string;
+  /** 떡상 추정 이유 — 시청자가 왜 이 영상을 끝까지 봤는지 */
+  viralReasons: string[];
+  /** 이 영상에서 빌릴 만한 angle (예: "함정 패턴 구조", "체크리스트 형식") */
+  borrowableAngles: string[];
+}
+
+/**
+ * 사용자 의도 — "이 영상에서 무엇을 빌리고 싶은지" 명시.
+ * 주제/대본 생성 prompt에 강하게 주입되어 AI가 generic 추천하지 않게 함.
+ */
+export interface UserIntent {
+  /** 사전 정의된 접근 방식 (선택, 옵션 클릭 가능) */
+  approach?: 'similar' | 'borrow_hook' | 'deeper_dive' | 'opposite' | 'combine';
+  /** 자유 텍스트 — 가장 핵심. 사용자가 자기 의도를 자유롭게 서술 */
+  freeText: string;
+}
+
+export const APPROACH_LABELS: Record<NonNullable<UserIntent['approach']>, string> = {
+  similar: '비슷한 주제로 내 채널 스타일로',
+  borrow_hook: '이 영상의 후킹 방식만 빌리기',
+  deeper_dive: '이 영상이 다룬 한 부분을 더 깊게',
+  opposite: '이 영상과 반대 관점',
+  combine: '내 채널 기존 주제와 결합',
+};
+
 export type WizardStep = 1 | 2 | 3 | 4;
 
 export type Period = "all" | "6m" | "1y" | "3m" | "1m" | "1w";

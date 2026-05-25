@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWizard } from "./WizardContext";
 import TopicCard from "./TopicCard";
-import type { Topic } from "@/lib/tools/vvs-planner/types";
+import VideoAnalysisCard from "./VideoAnalysisCard";
+import UserIntentInput from "./UserIntentInput";
+import type { Topic, VideoAnalysis } from "@/lib/tools/vvs-planner/types";
 
 export default function Step3TopicSelect() {
   const {
     selectedVideo,
+    transcript: existingTranscript,
     setTranscript,
     topics,
     setTopics,
@@ -22,10 +25,14 @@ export default function Step3TopicSelect() {
     youtubeApiKey,
     channelProfile,
     referenceVideoUrls,
+    videoAnalysis,
+    setVideoAnalysis,
+    userIntent,
+    setUserIntent,
   } = useWizard();
 
-  const [phase, setPhase] = useState<"transcript" | "topics" | "done">(
-    topics.length > 0 ? "done" : "transcript",
+  const [phase, setPhase] = useState<"transcript" | "analyze" | "ready" | "topics" | "done">(
+    topics.length > 0 ? "done" : videoAnalysis ? "ready" : "transcript",
   );
   const [elapsed, setElapsed] = useState(0);
   const [showManualInput, setShowManualInput] = useState(false);
@@ -47,12 +54,47 @@ export default function Step3TopicSelect() {
     return () => clearInterval(id);
   }, [isLoading]);
 
+  /**
+   * 영상 분석 — 자막을 받아 구조/후킹/타겟 등 추출.
+   * 사용자가 영상의 핵심을 한눈에 보고 의도를 입력할 수 있게 함.
+   */
+  const analyzeVideo = useCallback(
+    async (transcript: string, signal?: AbortSignal): Promise<VideoAnalysis> => {
+      if (!anthropicApiKey.trim()) {
+        throw new Error("우측 상단에서 Claude API 키를 입력해주세요.");
+      }
+      if (!selectedVideo) throw new Error("영상이 선택되지 않았습니다.");
+      setPhase("analyze");
+      const res = await fetch("/api/tools/vvs-planner/analyze-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          videoTitle: selectedVideo.title,
+          channelTitle: selectedVideo.channelTitle,
+          anthropicApiKey,
+        }),
+        signal,
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error ?? "영상 분석 중 오류가 발생했습니다.");
+      }
+      const data = (await res.json()) as { analysis: VideoAnalysis };
+      return data.analysis;
+    },
+    [anthropicApiKey, selectedVideo],
+  );
+
   const generateTopics = useCallback(
     async (transcript: string, signal?: AbortSignal) => {
       if (!anthropicApiKey.trim()) {
         throw new Error("우측 상단에서 Claude API 키를 입력해주세요.");
       }
       if (!selectedVideo) throw new Error("영상이 선택되지 않았습니다.");
+      if (!userIntent.freeText.trim()) {
+        throw new Error("어떤 방향으로 만들고 싶은지 의도를 입력해주세요.");
+      }
 
       setPhase("topics");
       const topRes = await fetch("/api/tools/vvs-planner/topics", {
@@ -63,9 +105,10 @@ export default function Step3TopicSelect() {
           videoTitle: selectedVideo.title,
           channelTitle: selectedVideo.channelTitle,
           anthropicApiKey,
-          // v2 personalization
+          // v2/v3 personalization
           channelProfile,
           referenceVideoUrls,
+          userIntent,
         }),
         signal,
       });
@@ -77,15 +120,39 @@ export default function Step3TopicSelect() {
       setTopics(topData.topics);
       setPhase("done");
     },
-    [anthropicApiKey, selectedVideo, setPhase, setTopics],
+    [
+      anthropicApiKey,
+      selectedVideo,
+      setPhase,
+      setTopics,
+      channelProfile,
+      referenceVideoUrls,
+      userIntent,
+    ],
   );
+
+  // "이 의도로 주제 생성" 버튼 → topics 호출
+  const handleGenerateTopics = useCallback(async () => {
+    if (!existingTranscript) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await generateTopics(existingTranscript);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
+      setPhase("ready");
+    } finally {
+      setLoading(false);
+    }
+  }, [existingTranscript, generateTopics, setLoading, setError]);
 
   useEffect(() => {
     if (!selectedVideo) {
       goToStep(1);
       return;
     }
-    if (topics.length > 0) return;
+    // 이미 분석/주제 있으면 skip (사용자가 뒤로 갔다 다시 옴)
+    if (videoAnalysis || topics.length > 0) return;
 
     const ctrl = new AbortController();
     const run = async () => {
@@ -94,11 +161,11 @@ export default function Step3TopicSelect() {
       setShowManualInput(false);
 
       try {
+        // 1. 자막 추출
         setPhase("transcript");
         const tRes = await fetch("/api/tools/vvs-planner/transcript", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          // youtubeApiKey 전달 → description fallback 활성화
           body: JSON.stringify({
             videoId: selectedVideo.videoId,
             youtubeApiKey,
@@ -107,10 +174,9 @@ export default function Step3TopicSelect() {
         });
         if (!tRes.ok) {
           const d = await tRes.json();
-          throw new Error(
-            d.error ?? "자막 추출 중 오류가 발생했습니다.",
-            { cause: "transcript" },
-          );
+          throw new Error(d.error ?? "자막 추출 중 오류가 발생했습니다.", {
+            cause: "transcript",
+          });
         }
         const tData = (await tRes.json()) as {
           transcript: string;
@@ -120,7 +186,11 @@ export default function Step3TopicSelect() {
         setTranscript(tData.transcript);
         setTranscriptSource(tData.source ?? null);
 
-        await generateTopics(tData.transcript, ctrl.signal);
+        // 2. 영상 분석 (자동, topics는 사용자 명시적 트리거 후)
+        const analysis = await analyzeVideo(tData.transcript, ctrl.signal);
+        if (ctrl.signal.aborted) return;
+        setVideoAnalysis(analysis);
+        setPhase("ready"); // 사용자가 의도 입력 + "주제 생성" 버튼 누를 단계
       } catch (e) {
         if (ctrl.signal.aborted) return;
         const isTranscriptError =
@@ -151,13 +221,23 @@ export default function Step3TopicSelect() {
     setTranscript(cleaned);
     setLoading(true);
     try {
-      await generateTopics(cleaned);
+      // 수동 입력 시에도 analyze → ready 흐름
+      const analysis = await analyzeVideo(cleaned);
+      setVideoAnalysis(analysis);
+      setPhase("ready");
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [manualText, generateTopics, setTranscript, setLoading, setError]);
+  }, [
+    manualText,
+    analyzeVideo,
+    setVideoAnalysis,
+    setTranscript,
+    setLoading,
+    setError,
+  ]);
 
   return (
     <div>
@@ -165,18 +245,24 @@ export default function Step3TopicSelect() {
         <div className="flex flex-col items-center justify-center py-16">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand border-t-transparent" />
           <p className="mt-4 text-sm font-bold text-ink">
-            {phase === "transcript"
-              ? "자막을 추출하고 있습니다..."
-              : "AI가 주제를 생성하고 있습니다..."}
+            {phase === "transcript" && "자막을 추출하고 있습니다..."}
+            {phase === "analyze" && "AI가 영상을 분석하고 있습니다..."}
+            {phase === "topics" && "AI가 주제를 생성하고 있습니다..."}
           </p>
           <p className="mt-1 text-xs text-mute">
             {elapsed}초 경과
             {phase === "topics" && elapsed > 30 && " · 평소보다 오래 걸리고 있어요"}
           </p>
-          <div className="mt-3 flex gap-2 text-[11px] font-bold">
+          <div className="mt-3 flex gap-2 text-[11px] font-bold flex-wrap justify-center">
             <Pill done>1. 자막 추출</Pill>
-            <Pill done={phase !== "transcript"} active={phase === "topics"}>
-              2. 주제 10개 생성
+            <Pill
+              done={phase === "ready" || phase === "topics" || phase === "done"}
+              active={phase === "analyze"}
+            >
+              2. 영상 분석
+            </Pill>
+            <Pill done={phase === "done"} active={phase === "topics"}>
+              3. 주제 10개 생성
             </Pill>
           </div>
         </div>
@@ -212,6 +298,63 @@ export default function Step3TopicSelect() {
           >
             다른 영상 선택하기
           </button>
+        </div>
+      )}
+
+      {/* ready 단계: 영상 분석 카드 + 의도 입력 + 주제 생성 버튼 */}
+      {!isLoading && !error && phase === "ready" && videoAnalysis && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-ink">
+                영상 분석 완료 — 어떤 방향으로?
+              </h2>
+              <p className="text-sm text-sub mt-0.5">
+                아래 분석을 참고하고, 본인 의도를 입력하면 그에 맞춰 주제를 만들어드립니다.
+              </p>
+            </div>
+            <button
+              onClick={() => goToStep(2)}
+              className="text-sm font-semibold text-sub hover:text-ink whitespace-nowrap"
+            >
+              ← 영상 선택
+            </button>
+          </div>
+
+          {transcriptSource && (
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider">
+              <span className="text-mute">분석 소스:</span>
+              {transcriptSource === "captions" && (
+                <span className="px-1.5 py-0.5 bg-success/15 text-success rounded">
+                  영상 자막
+                </span>
+              )}
+              {transcriptSource === "description" && (
+                <span className="px-1.5 py-0.5 bg-warn/15 text-warn rounded">
+                  영상 설명란 (자막 없음)
+                </span>
+              )}
+              {transcriptSource === "captions+description" && (
+                <span className="px-1.5 py-0.5 bg-brand/15 text-brand rounded">
+                  자막 + 설명란 통합
+                </span>
+              )}
+            </div>
+          )}
+
+          <VideoAnalysisCard analysis={videoAnalysis} />
+
+          <UserIntentInput intent={userIntent} onChange={setUserIntent} />
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleGenerateTopics}
+              disabled={userIntent.freeText.trim().length < 5}
+              className="rounded-xl bg-brand px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-brandHover disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              이 의도로 주제 10개 생성하기 →
+            </button>
+          </div>
         </div>
       )}
 

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { streamClaudeText } from "@/lib/tools/vvs-planner/claude";
 import { buildScriptPrompt } from "@/lib/tools/vvs-planner/prompts";
 import { getTranscript } from "@/lib/tools/vvs-planner/transcript";
-import type { ChannelProfile, ReferenceVideo } from "@/lib/tools/vvs-planner/types";
+import type { ChannelProfile, ReferenceVideo, UserIntent } from "@/lib/tools/vvs-planner/types";
 
 // youtube-transcript는 Node 런타임 필요
 export const runtime = "nodejs";
@@ -15,6 +15,7 @@ type Body = {
   anthropicApiKey?: string;
   channelProfile?: ChannelProfile | null;
   referenceVideoUrls?: string[];
+  userIntent?: UserIntent | null;
 };
 
 function extractVideoId(url: string): string | null {
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
     const prompt = buildScriptPrompt(topic, transcript, videoTitle, {
       channelProfile: body.channelProfile || null,
       referenceVideos,
+      userIntent: body.userIntent || null,
     });
     const stream = await streamClaudeText(apiKey, prompt);
     return new Response(stream, {

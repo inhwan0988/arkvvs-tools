@@ -17,6 +17,7 @@ export default function Step4ScriptGenerate() {
     anthropicApiKey,
     channelProfile,
     referenceVideoUrls,
+    userIntent,
   } = useWizard();
 
   const [isStreaming, setIsStreaming] = useState(false);
@@ -50,9 +51,10 @@ export default function Step4ScriptGenerate() {
           transcript,
           videoTitle: selectedVideo.title,
           anthropicApiKey,
-          // v2 personalization
+          // v2/v3 personalization
           channelProfile,
           referenceVideoUrls,
+          userIntent,
         }),
         signal: controller.signal,
       });

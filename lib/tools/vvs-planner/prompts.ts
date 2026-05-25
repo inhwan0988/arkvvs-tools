@@ -1,4 +1,5 @@
-import type { ChannelProfile, ReferenceVideo } from "./types";
+import type { ChannelProfile, ReferenceVideo, UserIntent } from "./types";
+import { APPROACH_LABELS } from "./types";
 
 /**
  * 채널 프로필을 prompt에 주입할 system context로 변환.
@@ -29,6 +30,27 @@ function buildChannelContext(profile: ChannelProfile | null | undefined): string
 }
 
 /**
+ * 사용자 의도를 prompt에 주입. AI가 generic 추천 못 하게 강제.
+ */
+function buildIntentContext(intent: UserIntent | null | undefined): string {
+  if (!intent) return "";
+  const parts: string[] = ["<사용자가 명시한 의도 (반드시 100% 반영)>"];
+  if (intent.approach) {
+    parts.push(`접근 방식: ${APPROACH_LABELS[intent.approach]}`);
+  }
+  if (intent.freeText?.trim()) {
+    parts.push(`구체 의도: ${intent.freeText.trim()}`);
+  }
+  parts.push("</사용자 의도>");
+  parts.push("");
+  parts.push(
+    "⚠️ 위 사용자 의도와 맞지 않는 주제/방향은 절대 제안하지 마세요. " +
+      "AI 자기 마음대로 다른 주제 만들기 금지.",
+  );
+  return parts.join("\n");
+}
+
+/**
  * 사용자가 명시적으로 추가한 레퍼런스 영상의 자막을 prompt에 주입.
  * "이런 스타일로 만들고 싶다"는 명시적 의도 반영.
  */
@@ -52,17 +74,21 @@ export function buildTopicPrompt(
   options?: {
     channelProfile?: ChannelProfile | null;
     referenceVideos?: ReferenceVideo[] | null;
+    userIntent?: UserIntent | null;
   },
 ): string {
   const channelCtx = buildChannelContext(options?.channelProfile);
   const refCtx = buildReferenceContext(options?.referenceVideos);
-  const hasContext = !!(channelCtx || refCtx);
+  const intentCtx = buildIntentContext(options?.userIntent);
+  const hasContext = !!(channelCtx || refCtx || intentCtx);
 
   return `당신은 유튜브 콘텐츠 기획 전문가입니다.${
     hasContext
-      ? " 사용자의 채널 컨텍스트와 참고 영상을 면밀히 고려해서 맞춤형 추천을 해주세요."
+      ? " 사용자의 채널/의도/참고 영상을 면밀히 고려해서 맞춤형 추천을 해주세요. 사용자가 명시한 의도와 다른 방향으로 빗나가지 마세요."
       : ""
   }
+
+${intentCtx}
 
 ${channelCtx}
 
@@ -134,10 +160,12 @@ export function buildScriptPrompt(
   options?: {
     channelProfile?: ChannelProfile | null;
     referenceVideos?: ReferenceVideo[] | null;
+    userIntent?: UserIntent | null;
   },
 ): string {
   const channelCtx = buildChannelContext(options?.channelProfile);
   const refCtx = buildReferenceContext(options?.referenceVideos);
+  const intentCtx = buildIntentContext(options?.userIntent);
 
   const targetMin = options?.channelProfile?.avgDurationSeconds
     ? Math.max(3, Math.round(options.channelProfile.avgDurationSeconds / 60))
@@ -146,7 +174,9 @@ export function buildScriptPrompt(
 
   return `당신은 유튜브 대본 작성 전문가입니다.${
     channelCtx ? " 사용자의 채널 톤/말투에 정확히 맞춰 작성해주세요." : ""
-  }
+  }${intentCtx ? " 사용자가 명시한 의도를 100% 반영하세요." : ""}
+
+${intentCtx}
 
 ${channelCtx}
 
@@ -208,4 +238,57 @@ ${transcript.slice(0, 6000)}
 5. 각 시간 마커는 반드시 [대괄호] 포함. 파싱에 사용됨.
 
 대본 본문만 작성 (구조 표시 [...]와 💡 B-roll 포함, 그 외 메타 설명 X).`;
+}
+
+/**
+ * 영상 분석 prompt — 자막을 보고 구조/후킹/타겟 등 추출.
+ * 사용자가 Step3 진입 시 자동 호출되어 영상의 핵심을 한눈에 보여줌.
+ */
+export function buildAnalyzeVideoPrompt(
+  transcript: string,
+  videoTitle: string,
+  channelTitle: string,
+): string {
+  return `당신은 유튜브 콘텐츠 분석 전문가입니다.
+
+다음은 "${channelTitle}" 채널의 "${videoTitle}" 영상 자막입니다.
+
+<자막>
+${transcript.slice(0, 8000)}
+</자막>
+
+이 영상을 분석해서 다음을 추출해주세요:
+
+1. coreTheme: 영상의 핵심 메시지를 한 줄로 (15-30자)
+2. structure:
+   - intro: 인트로(처음 30초)의 핵심 한 줄
+   - mainPoints: 본론의 핵심 포인트 2-4개 (각 한 줄)
+   - conclusion: 결론/CTA 한 줄
+3. hookPatterns: 사용된 후킹 패턴 2-4개
+   (예: "충격적 사실 오프닝", "숫자 활용", "전문가 발언 인용", "역설적 주장")
+4. targetAudience: 이 영상의 주 타겟 시청자
+   (예: "재개발 투자 고민하는 30-50대", "유튜브 시작하려는 직장인")
+5. viralReasons: 이 영상이 떡상한 추정 이유 2-3개
+   (예: ["불편한 진실을 드러냄", "구체적 사례 풍부", "결과를 명확히 약속"])
+6. borrowableAngles: 다른 크리에이터가 이 영상에서 빌릴 만한 angle 2-4개
+   (예: ["함정 패턴 구조", "체크리스트 형식", "전문가 인터뷰 톤"])
+
+⚠️ JSON 규칙:
+- 모든 문자열은 큰따옴표
+- 따옴표 안에 큰따옴표 필요 시 작은따옴표로 대체
+- 응답은 { 시작 } 종료. 코드블록/설명 X.
+
+응답 형식:
+{
+  "coreTheme": "...",
+  "structure": {
+    "intro": "...",
+    "mainPoints": ["...", "..."],
+    "conclusion": "..."
+  },
+  "hookPatterns": ["...", "..."],
+  "targetAudience": "...",
+  "viralReasons": ["...", "..."],
+  "borrowableAngles": ["...", "..."]
+}`;
 }
