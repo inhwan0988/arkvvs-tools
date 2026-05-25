@@ -1,0 +1,63 @@
+{
+  "name": "arkvvs-capcut-helper",
+  "version": "0.1.0",
+  "private": true,
+  "main": "electron/main.js",
+  "description": "캡컷 데스크탑 + arkvvs-tools 웹앱 실시간 연동 helper",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "release:patch": "npm version patch -m 'release v%s' && git push origin main && git push origin --tags"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@supabase/supabase-js": "^2.50.0",
+    "chokidar": "^4.0.0",
+    "electron-updater": "^6.3.9",
+    "fluent-ffmpeg": "^2.1.3"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.28",
+    "@types/node": "^20",
+    "electron": "^33.4.11",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.arkstudio.capcuthelper",
+    "productName": "ARK CapCut Helper",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@ffmpeg-installer/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "identity": "-"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "differentialPackage": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "inhwan0988",
+      "repo": "arkvvs-capcut-helper",
+      "releaseType": "release"
+    }
+  }
+}

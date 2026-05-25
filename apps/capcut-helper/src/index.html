@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ARK CapCut Helper</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+          sans-serif;
+        background: #0a1428;
+        color: #fff;
+        padding: 20px;
+      }
+      h1 {
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+      .card {
+        background: #11203d;
+        border: 1px solid #243a5c;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .label {
+        font-size: 11px;
+        color: #8893a8;
+        text-transform: uppercase;
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      .value {
+        font-size: 14px;
+        color: #fff;
+        word-break: break-all;
+      }
+      .status {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      .status.idle {
+        background: rgba(136, 147, 168, 0.2);
+        color: #8893a8;
+      }
+      .status.watching {
+        background: rgba(54, 211, 153, 0.2);
+        color: #36d399;
+      }
+      .btn {
+        display: inline-block;
+        padding: 8px 16px;
+        background: #1c4d8d;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-right: 8px;
+      }
+      .btn:hover {
+        background: #0f2854;
+      }
+      .small {
+        font-size: 11px;
+        color: #565a7c;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎬 ARK CapCut Helper</h1>
+
+    <div class="card">
+      <div class="label">상태</div>
+      <div><span class="status idle">대기 중</span></div>
+      <div class="small" style="margin-top: 8px">
+        캡컷 프로젝트 폴더를 감시 중입니다.<br />
+        새 영상이 import되면 알림이 옵니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">캡컷 폴더</div>
+      <div class="value" id="capcut-dir">로딩 중...</div>
+    </div>
+
+    <div class="card">
+      <div class="label">웹앱 연결</div>
+      <div class="value" id="webapp-status">⏸️ 연결 안 됨</div>
+      <div class="small" style="margin-top: 6px">
+        웹 대시보드에서 helper 페어링 후 연결됩니다.
+      </div>
+    </div>
+
+    <div style="margin-top: 16px">
+      <a
+        href="https://arkvvs-tools.vercel.app"
+        class="btn"
+        target="_blank"
+        rel="noopener"
+        >🌐 웹앱 열기</a
+      >
+    </div>
+
+    <p class="small" style="margin-top: 20px">
+      ARK CapCut Helper v0.1.0 (Beta) — Phase 2 scaffold
+    </p>
+  </body>
+</html>
