@@ -112,10 +112,10 @@ export const TOOLS: Tool[] = [
   {
     slug: "capcut-auto-edit",
     name: "캡컷 반자동 편집",
-    description: "캡컷 템플릿 기반 컷 편집 · 자막 자동화",
+    description: "mp3 업로드 → 자막 + 무음 컷 + 포인트 자막 + 효과음 자동 매칭 → 캡컷 패키지",
     emoji: "🎞️",
-    href: "#",
-    status: "soon",
+    href: "/tools/capcut-edit",
+    status: "live",
     color: "bg-premiumSoft",
     category: "편집",
     membersOnly: true,
