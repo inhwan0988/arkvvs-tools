@@ -99,10 +99,10 @@ export const TOOLS: Tool[] = [
   {
     slug: "insta-viral-planner",
     name: "인스타그램 떡상 기획",
-    description: "릴스·피드 떡상 키워드 분석 + 콘텐츠 기획 자동화",
+    description: "키워드 → 떡상 릴스 자동 검색 → 분석 + 의도 입력 → 릴스 대본 생성",
     emoji: "📱",
-    href: "#",
-    status: "soon",
+    href: "/tools/insta-planner",
+    status: "live",
     color: "bg-premiumSoft",
     category: "기획",
     membersOnly: true,
