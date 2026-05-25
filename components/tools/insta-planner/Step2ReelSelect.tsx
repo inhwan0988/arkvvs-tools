@@ -70,15 +70,16 @@ function ReelCard({
         selected ? "border-brand ring-2 ring-brand/20" : "border-line"
       }`}
     >
-      {/* 썸네일 */}
+      {/* 썸네일 (Instagram CDN은 hotlink 차단 → image-proxy 거침) */}
       <div className="aspect-square bg-chip relative overflow-hidden">
         {reel.thumbnail ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={reel.thumbnail}
+            src={`/api/image-proxy?url=${encodeURIComponent(reel.thumbnail)}`}
             alt={reel.caption.slice(0, 50)}
             className="w-full h-full object-cover"
             loading="lazy"
+            referrerPolicy="no-referrer"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-mute">
