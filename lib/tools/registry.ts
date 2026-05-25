@@ -125,10 +125,10 @@ export const TOOLS: Tool[] = [
   {
     slug: "sns-traffic",
     name: "SNS 트래픽 추적 및 관리",
-    description: "다채널 조회수·유입 · 성과 대시보드",
+    description: "단축 URL · 실시간 클릭/전환율 · 주간 AI 베스트/워스트 분석",
     emoji: "📊",
-    href: "#",
-    status: "soon",
+    href: "/tools/sns-tracker",
+    status: "live",
     color: "bg-premiumSoft",
     category: "업로드 및 관리",
     membersOnly: true,
