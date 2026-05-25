@@ -292,19 +292,48 @@ function ManualTranscriptInput({
   onSubmit: () => void;
   onCancel: () => void;
 }) {
+  // 클립보드에서 직접 읽어서 붙여넣기 (사용자 클릭 절약)
+  async function pasteFromClipboard() {
+    try {
+      if (!navigator.clipboard?.readText) {
+        alert(
+          "이 브라우저는 클립보드 자동 읽기를 지원하지 않아요. 텍스트 칸에 직접 붙여넣기(Cmd+V)해주세요.",
+        );
+        return;
+      }
+      const text = await navigator.clipboard.readText();
+      if (!text || text.trim().length < 10) {
+        alert(
+          "클립보드가 비어있거나 너무 짧아요. YouTube에서 '스크립트 표시 → 전체 선택 → 복사' 먼저 해주세요.",
+        );
+        return;
+      }
+      onChange(text);
+    } catch (e) {
+      // permission denied 등
+      const msg = e instanceof Error ? e.message : String(e);
+      alert(
+        `클립보드 읽기 실패: ${msg}\n\n` +
+          "권한 차단 시 텍스트 칸에 직접 붙여넣기(Cmd+V)해주세요.",
+      );
+    }
+  }
+
   return (
     <div className="mx-auto mt-6 max-w-2xl rounded-2xl border border-line bg-surface p-6 shadow-card">
       <h3 className="text-base font-bold text-ink">
         직접 자막을 붙여넣어 주세요
       </h3>
       <p className="mt-1 text-sm text-sub">
-        자동 추출이 막혀있어요. YouTube에서 직접 복사해서 붙여넣으면 다음 단계로
-        진행할 수 있어요.
+        YouTube가 클라우드 서버 자동 추출을 차단하고 있어요. 아래 단계로
+        진행하면 1분 안에 끝나요.
       </p>
 
-      <ol className="mt-4 space-y-2 text-sm text-sub">
+      <ol className="mt-4 space-y-2.5 text-sm text-sub">
         <li className="flex gap-2">
-          <span className="font-bold text-brand">1.</span>
+          <span className="shrink-0 w-5 h-5 rounded-full bg-brandSoft text-brand text-[11px] font-bold flex items-center justify-center">
+            1
+          </span>
           <span>
             <a
               href={videoUrl}
@@ -317,27 +346,55 @@ function ManualTranscriptInput({
           </span>
         </li>
         <li className="flex gap-2">
-          <span className="font-bold text-brand">2.</span>
+          <span className="shrink-0 w-5 h-5 rounded-full bg-brandSoft text-brand text-[11px] font-bold flex items-center justify-center">
+            2
+          </span>
           <span>
-            영상 설명란에서 <b>&ldquo;더보기&rdquo;</b> 클릭 →{" "}
-            <b>&ldquo;스크립트 표시&rdquo;</b> 버튼 클릭
+            영상 설명란 <b>&ldquo;더보기&rdquo;</b> 클릭 →{" "}
+            <b>&ldquo;스크립트 표시&rdquo;</b> 클릭 (영상 옆에 스크립트 패널 펼쳐짐)
           </span>
         </li>
         <li className="flex gap-2">
-          <span className="font-bold text-brand">3.</span>
-          <span>스크립트 패널의 텍스트 전체 선택 + 복사 (Cmd+A, Cmd+C)</span>
+          <span className="shrink-0 w-5 h-5 rounded-full bg-brandSoft text-brand text-[11px] font-bold flex items-center justify-center">
+            3
+          </span>
+          <span>스크립트 텍스트 전체 선택 (Cmd+A) + 복사 (Cmd+C)</span>
         </li>
         <li className="flex gap-2">
-          <span className="font-bold text-brand">4.</span>
-          <span>아래 칸에 붙여넣기 (시간 표시는 자동으로 정리됩니다)</span>
+          <span className="shrink-0 w-5 h-5 rounded-full bg-brand text-white text-[11px] font-bold flex items-center justify-center">
+            4
+          </span>
+          <span className="font-semibold text-ink">
+            아래 <b className="text-brand">&ldquo;📋 클립보드에서 붙여넣기&rdquo;</b>{" "}
+            버튼 한 번 클릭 — 끝!
+          </span>
         </li>
       </ol>
+
+      {/* 클립보드 자동 붙여넣기 — 가장 강조 */}
+      <button
+        onClick={pasteFromClipboard}
+        className="mt-5 w-full rounded-xl bg-brand px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-brandHover flex items-center justify-center gap-2"
+      >
+        📋 클립보드에서 자동 붙여넣기
+      </button>
+      <p className="mt-1.5 text-center text-[11px] text-mute">
+        Cmd+C로 복사한 후 위 버튼만 누르면 자동 입력됩니다
+      </p>
+
+      <div className="mt-4 flex items-center gap-2">
+        <div className="flex-1 h-px bg-line" />
+        <span className="text-[10px] font-bold text-mute uppercase tracking-wider">
+          또는 직접 입력
+        </span>
+        <div className="flex-1 h-px bg-line" />
+      </div>
 
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0:00 안녕하세요&#10;0:05 오늘은..."
-        className="mt-4 w-full min-h-[200px] resize-y rounded-xl border border-line bg-bg px-3 py-2.5 text-sm text-ink placeholder:text-mute focus:border-brand focus:outline-none"
+        className="mt-3 w-full min-h-[200px] resize-y rounded-xl border border-line bg-bg px-3 py-2.5 text-sm text-ink placeholder:text-mute focus:border-brand focus:outline-none"
       />
       <p className="mt-1.5 text-xs text-mute">
         {value.length > 0

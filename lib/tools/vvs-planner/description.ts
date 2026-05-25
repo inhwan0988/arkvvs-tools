@@ -76,8 +76,8 @@ export function cleanDescription(raw: string): string {
 
 /**
  * description이 의미 있는 컨텐츠를 담고 있는지 판단.
- * 단순 길이 기준 — 200자 이상이면 어느 정도 가치 있다고 봄.
+ * 100자 이상이면 어느 정도 가치 있다고 봄 (광고/링크만 있으면 cleaned 후 100자 미만).
  */
 export function isDescriptionUseful(cleaned: string): boolean {
-  return cleaned.length >= 200;
+  return cleaned.length >= 100;
 }
