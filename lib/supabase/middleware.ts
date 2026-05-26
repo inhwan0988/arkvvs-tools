@@ -1,7 +1,20 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/banned", "/privacy", "/terms"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth",
+  "/banned",
+  "/privacy",
+  "/terms",
+  // Helper App endpoints — device-auth(Bearer secret) 기반, 사용자 세션 없이 호출됨
+  "/api/tools/capcut-helper/register",
+  "/api/tools/capcut-helper/ping",
+  "/api/tools/capcut-helper/jobs",
+  "/api/tools/capcut-helper/upload-url",
+  // 단축 URL redirect 라우트 — 익명 클릭도 받아야 함
+  "/r/",
+];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
