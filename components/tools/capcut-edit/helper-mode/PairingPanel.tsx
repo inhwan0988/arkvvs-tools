@@ -79,7 +79,7 @@ export default function PairingPanel({ onPaired }: { onPaired: () => void }) {
         </h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
           <a
-            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest/download/ARK-CapCut-Helper-0.1.0-arm64.dmg"
+            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest/download/ARK-CapCut-Helper-0.1.1-arm64.dmg"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-brand bg-white px-3 py-2.5 text-center hover:bg-brandSoft transition shadow-card"
@@ -89,7 +89,7 @@ export default function PairingPanel({ onPaired }: { onPaired: () => void }) {
             <p className="text-[10px] text-mute">M1 / M2 / M3 / M4</p>
           </a>
           <a
-            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest/download/ARK-CapCut-Helper-0.1.0.dmg"
+            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest/download/ARK-CapCut-Helper-0.1.1.dmg"
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-line bg-white px-3 py-2.5 text-center hover:bg-chip transition shadow-card"

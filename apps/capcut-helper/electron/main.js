@@ -237,29 +237,115 @@ function startWatcher() {
   });
 
   const processed = new Set();
+
+  // 영상이 프로젝트 폴더에 직접 복사된 경우 (드물지만 가능)
   watcher.on('add', async (filepath) => {
-    if (!config.VIDEO_EXTENSIONS.test(filepath)) return;
-    if (processed.has(filepath)) return;
-    processed.add(filepath);
-    await processNewVideo(filepath);
+    if (config.VIDEO_EXTENSIONS.test(filepath)) {
+      if (processed.has(filepath)) return;
+      processed.add(filepath);
+      await processNewVideo(filepath, path.dirname(filepath));
+      return;
+    }
+    // draft_meta_info.json 추가/변경 — reference 방식 영상 감지
+    if (path.basename(filepath) === 'draft_meta_info.json') {
+      await handleDraftMetaChange(filepath, processed);
+    }
+  });
+
+  // 캡컷이 영상 import할 때 draft_meta_info.json을 갱신 — change 이벤트도 잡아야
+  watcher.on('change', async (filepath) => {
+    if (path.basename(filepath) === 'draft_meta_info.json') {
+      await handleDraftMetaChange(filepath, processed);
+    }
   });
 
   watcher.on('error', (e) => logLine('[watch] error:', e.message));
   pushStateToUI();
 }
 
-async function processNewVideo(videoPath) {
+/**
+ * draft_meta_info.json 변경 시 file_Path 추출 → 원본 영상 처리.
+ *
+ * 캡컷 reference 방식:
+ *   - 원본 영상은 그대로 (예: ~/Downloads/foo.mp4)
+ *   - draft_meta_info.json에 "file_Path":"/path/to/foo.mp4" 기록
+ *   - 우리는 그 path를 읽어 audio 추출
+ */
+async function handleDraftMetaChange(metaPath, processedSet) {
+  try {
+    const projectDir = path.dirname(metaPath);
+    const raw = fs.readFileSync(metaPath, 'utf-8');
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      // 캡컷이 저장 중일 수 있음 — 잠시 후 재시도 가능하나 일단 무시
+      logLine('[meta] parse skip:', e.message);
+      return;
+    }
+
+    // file_Path 키를 재귀적으로 찾기 (캡컷이 구조 자주 바꿈)
+    const found = [];
+    walkForVideoPaths(data, found);
+
+    for (const videoPath of found) {
+      if (!videoPath || processedSet.has(videoPath)) continue;
+      if (!config.VIDEO_EXTENSIONS.test(videoPath)) continue;
+      if (!fs.existsSync(videoPath)) {
+        logLine('[meta] video not found at:', videoPath);
+        continue;
+      }
+      processedSet.add(videoPath);
+      logLine('[meta] referenced video found:', videoPath);
+      await processNewVideo(videoPath, projectDir);
+    }
+  } catch (e) {
+    logLine('[meta] handle failed:', e.message);
+  }
+}
+
+/** JSON tree에서 path-like value 추출 */
+function walkForVideoPaths(node, out) {
+  if (!node) return;
+  if (typeof node === 'string') {
+    if (
+      node.length > 5 &&
+      node.length < 1000 &&
+      (node.includes('/') || node.includes('\\')) &&
+      config.VIDEO_EXTENSIONS.test(node)
+    ) {
+      out.push(node);
+    }
+    return;
+  }
+  if (Array.isArray(node)) {
+    for (const v of node) walkForVideoPaths(v, out);
+    return;
+  }
+  if (typeof node === 'object') {
+    // file_Path / path / video_path 등 key는 가장 흔함
+    for (const v of Object.values(node)) walkForVideoPaths(v, out);
+  }
+}
+
+async function processNewVideo(videoPath, projectDirOverride) {
   if (!state.credentials || !state.paired) return;
 
   const videoName = path.basename(videoPath);
-  // project dir 추정: .../<project_uuid>/resources/video_clips/foo.mp4
-  // → .../<project_uuid>
-  const parts = videoPath.split(path.sep);
-  const projectIdx = parts.findIndex((p) => p === 'com.lveditor.draft');
-  const projectId = projectIdx >= 0 ? parts[projectIdx + 1] : null;
-  const projectDir = projectId
-    ? parts.slice(0, projectIdx + 2).join(path.sep)
-    : path.dirname(videoPath);
+  // projectDir: 명시적으로 받은 게 있으면 그것, 없으면 추정
+  let projectId = null;
+  let projectDir;
+  if (projectDirOverride) {
+    projectDir = projectDirOverride;
+    projectId = path.basename(projectDirOverride);
+  } else {
+    const parts = videoPath.split(path.sep);
+    const projectIdx = parts.findIndex((p) => p === 'com.lveditor.draft');
+    projectId = projectIdx >= 0 ? parts[projectIdx + 1] : null;
+    projectDir = projectId
+      ? parts.slice(0, projectIdx + 2).join(path.sep)
+      : path.dirname(videoPath);
+  }
 
   logLine('[video] new:', videoName, 'project:', projectId);
   notify('📹 새 영상 감지', `${videoName} — audio 추출 + 업로드 중...`);
