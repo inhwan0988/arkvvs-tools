@@ -77,12 +77,46 @@ export default function PairingPanel({ onPaired }: { onPaired: () => void }) {
         <h4 className="text-[11px] font-bold text-mute uppercase tracking-wider mb-2">
           Helper 앱이 없으신가요?
         </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+          <a
+            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest/download/ARK-CapCut-Helper-0.1.0-arm64.dmg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-brand bg-white px-3 py-2.5 text-center hover:bg-brandSoft transition shadow-card"
+          >
+            <p className="text-[10px] font-bold text-mute uppercase">🍎 Mac (Apple Silicon)</p>
+            <p className="text-[12px] font-bold text-brand mt-0.5">.dmg 다운로드</p>
+            <p className="text-[10px] text-mute">M1 / M2 / M3 / M4</p>
+          </a>
+          <a
+            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest/download/ARK-CapCut-Helper-0.1.0.dmg"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg border border-line bg-white px-3 py-2.5 text-center hover:bg-chip transition shadow-card"
+          >
+            <p className="text-[10px] font-bold text-mute uppercase">🖥️ Mac (Intel)</p>
+            <p className="text-[12px] font-bold text-sub mt-0.5">.dmg 다운로드</p>
+            <p className="text-[10px] text-mute">Intel x64</p>
+          </a>
+        </div>
         <ol className="text-[12px] text-sub space-y-1 list-decimal list-inside">
-          <li>Helper 앱 다운로드 (Mac/Win) — 곧 추가</li>
-          <li>설치 후 실행 → 6자리 코드 표시</li>
-          <li>위 입력란에 입력</li>
+          <li>위 버튼 클릭 → dmg 다운로드</li>
+          <li>dmg 열고 응용 프로그램으로 드래그</li>
+          <li>응용 프로그램에서 <b>우클릭 → 열기</b> (첫 실행만, 확인되지 않은 개발자 경고 우회)</li>
+          <li>앱 화면의 6자리 코드를 위 입력란에 입력</li>
         </ol>
-        <p className="text-[10px] text-mute mt-3 italic">
+        <p className="text-[11px] text-sub mt-3">
+          🪟 Windows 빌드는 준비 중 ·{" "}
+          <a
+            href="https://github.com/inhwan0988/arkvvs-capcut-helper/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand hover:underline"
+          >
+            전체 release 보기
+          </a>
+        </p>
+        <p className="text-[10px] text-mute mt-2 italic">
           ⚠️ Helper는 본인 PC에만 설치. 영상은 PC 밖으로 안 나가고 audio 분석만 우리 서버를 거쳐요.
         </p>
       </div>
