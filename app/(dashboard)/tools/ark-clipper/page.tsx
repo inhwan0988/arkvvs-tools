@@ -2,7 +2,7 @@ import Link from "next/link";
 
 // GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
 // ark-clipper- 레포가 public이라 비로그인 사용자도 받을 수 있음
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.3.3";
 const DOWNLOADS = {
   mac: {
     url: `https://github.com/inhwan0988/ark-clipper-/releases/download/v${APP_VERSION}/Ark-Clipper-${APP_VERSION}-arm64.dmg`,
@@ -61,15 +61,16 @@ export default function ArkClipperPage() {
           </span>
         </div>
 
-        {/* 변경사항 (v0.3.2 — 2026-05-26 빌드) */}
+        {/* 변경사항 (v0.3.3 — 2026-05-26 빌드) */}
         <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
           <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
             ✨ NEW in v{APP_VERSION} (2026-05-26 빌드)
           </p>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• <b>🔧 자동 업데이트 실제로 작동 fix</b> — 그동안 macOS는 .zip 누락으로 자동 업데이트가 작동 안 했어요. 이번 한 번만 수동으로 받으시면 다음부터 백그라운드 자동 업데이트 정상 동작</li>
-            <li>• <b>업데이트 진행률 명확히 표시</b> — 새 버전 발견 시 다이얼로그, 별도 진행률 창, dock/taskbar progress bar</li>
-            <li>• Claude 모델 fallback chain (claude-sonnet-4-5 → 3-5-latest → 3-5-20241022) — 외부 사용자 모델 404 사전 차단</li>
+            <li>• <b>🔔 새 버전 감지 + 안내</b> — 새 버전이 나오면 앱이 자동으로 감지해서 다이얼로그로 알려드려요. "다운로드 페이지 열기" 한 번 클릭으로 이 페이지로 이동</li>
+            <li>• <b>macOS는 매번 새 dmg 수동 설치 필요</b> — 코드 서명 정책상 자동 적용 불가. 다이얼로그가 친절하게 안내해줘요</li>
+            <li>• <b>Windows는 완전 자동 업데이트</b> — 다운로드/적용/재시작까지 한 번에</li>
+            <li>• Claude 모델 fallback chain — 외부 사용자 모델 404 사전 차단</li>
           </ul>
         </div>
 
