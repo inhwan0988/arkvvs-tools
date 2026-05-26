@@ -2,7 +2,7 @@ import Link from "next/link";
 
 // GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
 // ark-clipper- 레포가 public이라 비로그인 사용자도 받을 수 있음
-const APP_VERSION = "0.3.1";
+const APP_VERSION = "0.3.2";
 const DOWNLOADS = {
   mac: {
     url: `https://github.com/inhwan0988/ark-clipper-/releases/download/v${APP_VERSION}/Ark-Clipper-${APP_VERSION}-arm64.dmg`,
@@ -61,7 +61,7 @@ export default function ArkClipperPage() {
           </span>
         </div>
 
-        {/* 변경사항 (v0.3.1 — 2026-05-26 빌드) */}
+        {/* 변경사항 (v0.3.2 — 2026-05-26 빌드) */}
         <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
           <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
             ✨ NEW in v{APP_VERSION} (2026-05-26 빌드)
