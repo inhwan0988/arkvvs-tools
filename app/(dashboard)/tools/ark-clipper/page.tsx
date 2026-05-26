@@ -2,22 +2,27 @@ import Link from "next/link";
 
 // GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
 // ark-clipper- 레포가 public이라 비로그인 사용자도 받을 수 있음
+const APP_VERSION = "0.3.1";
 const DOWNLOADS = {
   mac: {
-    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.15/Ark-Clipper-0.2.15-arm64.dmg",
+    url: `https://github.com/inhwan0988/ark-clipper-/releases/download/v${APP_VERSION}/Ark-Clipper-${APP_VERSION}-arm64.dmg`,
     available: true,
   },
   macIntel: {
-    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.15/Ark-Clipper-0.2.15.dmg",
+    url: `https://github.com/inhwan0988/ark-clipper-/releases/download/v${APP_VERSION}/Ark-Clipper-${APP_VERSION}.dmg`,
     available: true,
   },
   windows: {
-    url: "https://github.com/inhwan0988/ark-clipper-/releases/download/v0.2.15/Ark-Clipper-Setup-0.2.15.exe",
+    url: `https://github.com/inhwan0988/ark-clipper-/releases/download/v${APP_VERSION}/Ark-Clipper-Setup-${APP_VERSION}.exe`,
     available: true,
   },
 } as const;
 
-const APP_VERSION = "0.2.15";
+// "기존 사용자가 더블클릭 1번으로 완전 삭제 + 재설치" — main 브랜치에 항상 최신본 유지
+const CLEAN_INSTALL = {
+  mac: "https://raw.githubusercontent.com/inhwan0988/ark-clipper-/main/scripts/clean-install.command",
+  windows: "https://raw.githubusercontent.com/inhwan0988/ark-clipper-/main/scripts/clean-install.bat",
+} as const;
 
 export default function ArkClipperPage() {
   return (
@@ -56,20 +61,49 @@ export default function ArkClipperPage() {
           </span>
         </div>
 
-        {/* 변경사항 (v0.2.15 — 2026-05-20 빌드) */}
+        {/* 변경사항 (v0.3.1 — 2026-05-26 빌드) */}
         <div className="mb-4 rounded-xl2 border border-brand/30 bg-brandSoft/40 p-4">
           <p className="text-[11px] font-bold text-brand uppercase tracking-wider mb-2">
-            ✨ NEW in v{APP_VERSION} (2026-05-20 빌드)
+            ✨ NEW in v{APP_VERSION} (2026-05-26 빌드)
           </p>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• <b>Mac &ldquo;손상되었습니다&rdquo; 메시지 해결</b> (ad-hoc 서명 적용)</li>
-            <li>• <b>자동 업데이트 시작 ✨</b> — 이번이 <b>마지막 수동 다운로드</b>. 다음부터 앱이 백그라운드로 받아서 클릭 한 번에 적용</li>
-            <li>• <b>Mac Intel(x64) 정식 지원</b> — 이제 Intel Mac도 다운로드 가능</li>
-            <li>• Windows 한국어 자막 □□□ 깨짐 완전 해결</li>
-            <li>• 다운로드 시 검정 화면 뜨던 버그 fix</li>
-            <li>• 첫 실행 시 SmartScreen/Gatekeeper 우회 가이드 자동 표시</li>
-            <li>• 친화적 한국어 에러 메시지 + 앱 내 로그 파일 열기 버튼</li>
+            <li>• <b>🎬 캡컷 반자동 편집 모드 추가</b> — 우상단 버튼으로 mp3 업로드 → 자막 + 무음 컷 + 포인트 자막 + 효과음 자동 생성 (BETA)</li>
+            <li>• <b>🔧 자동 업데이트 실제로 작동 fix</b> — 그동안 macOS는 .zip 누락으로 자동 업데이트가 작동 안 했어요. 이번 한 번만 수동으로 받으시면 다음부터 백그라운드 자동 업데이트 정상 동작</li>
+            <li>• <b>업데이트 진행률 명확히 표시</b> — 새 버전 발견 시 다이얼로그, 별도 진행률 창, dock/taskbar progress bar</li>
+            <li>• Claude 모델 fallback chain (claude-sonnet-4-5 → 3-5-latest → 3-5-20241022) — 외부 사용자 모델 404 사전 차단</li>
           </ul>
+        </div>
+
+        {/* 기존 사용자 깔끔 재설치 안내 */}
+        <div className="mb-4 rounded-xl2 border border-warn/30 bg-warnSoft/40 p-4">
+          <p className="text-[11px] font-bold text-warn uppercase tracking-wider mb-2">
+            ⚠️ 기존 v0.2.x 사용자께
+          </p>
+          <p className="text-[13px] text-sub leading-relaxed mb-2">
+            v0.2.x 모든 버전에서 macOS 자동 업데이트가 작동하지 않는 버그가 있었어요. <b>이번 한 번만 수동으로 받아주세요</b>. v0.3.1부터는 자동 업데이트가 정상 작동합니다.
+          </p>
+          <p className="text-[13px] text-sub leading-relaxed">
+            깨끗하게 초기화 후 재설치하고 싶다면 아래 자동 스크립트를 다운로드 + 더블클릭하면 끝:
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a
+              href={CLEAN_INSTALL.mac}
+              download="clean-install.command"
+              className="text-[12px] font-bold px-3 py-1.5 rounded-lg bg-warn/20 text-warn hover:bg-warn/30 transition"
+            >
+              🍎 Mac 자동 삭제 스크립트 (.command)
+            </a>
+            <a
+              href={CLEAN_INSTALL.windows}
+              download="clean-install.bat"
+              className="text-[12px] font-bold px-3 py-1.5 rounded-lg bg-warn/20 text-warn hover:bg-warn/30 transition"
+            >
+              🪟 Windows 자동 삭제 스크립트 (.bat)
+            </a>
+          </div>
+          <p className="text-[11px] text-mute mt-2">
+            ⚠️ 그냥 위에서 dmg/exe 받아서 덮어쓰기 설치해도 됩니다 (데이터 보존). 위 스크립트는 완전 초기화용.
+          </p>
         </div>
 
 
