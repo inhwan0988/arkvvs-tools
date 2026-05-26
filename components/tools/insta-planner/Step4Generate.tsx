@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useWizard } from "./WizardContext";
 import type { ContentIdea } from "@/lib/tools/insta-planner/types";
+import {
+  parseScript,
+  rowsToPlainText,
+  rowsToDialogueOnly,
+  rowsToDirectionOnly,
+  type ScriptRow,
+} from "@/lib/tools/insta-planner/script-parser";
 
 export default function Step4Generate() {
   const {
@@ -71,9 +78,29 @@ export default function Step4Generate() {
     appendScriptText,
   ]);
 
-  function copyScript() {
+  const rows = useMemo<ScriptRow[]>(() => parseScript(scriptText), [scriptText]);
+
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+
+  function flashCopy(msg: string) {
+    setCopyMsg(msg);
+    setTimeout(() => setCopyMsg(null), 1500);
+  }
+
+  async function copyAll() {
     if (!scriptText) return;
-    navigator.clipboard.writeText(scriptText);
+    await navigator.clipboard.writeText(rowsToPlainText(rows));
+    flashCopy("✓ 전체 복사됨");
+  }
+  async function copyDialogue() {
+    if (!scriptText) return;
+    await navigator.clipboard.writeText(rowsToDialogueOnly(rows));
+    flashCopy("✓ 대사만 복사됨");
+  }
+  async function copyDirection() {
+    if (!scriptText) return;
+    await navigator.clipboard.writeText(rowsToDirectionOnly(rows));
+    flashCopy("✓ 연출만 복사됨");
   }
 
   return (
@@ -119,10 +146,10 @@ export default function Step4Generate() {
         </div>
       )}
 
-      {/* 대본 출력 */}
+      {/* 대본 출력 — 2-column (대사 / 연출) */}
       {scriptText && (
         <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <h3 className="text-sm font-bold text-ink">
               📝 콘텐츠 기획서 / 대본
               {streaming && (
@@ -130,13 +157,32 @@ export default function Step4Generate() {
                   생성 중...
                 </span>
               )}
+              {copyMsg && (
+                <span className="ml-2 text-[10px] font-bold text-success">
+                  {copyMsg}
+                </span>
+              )}
             </h3>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 flex-wrap">
               <button
-                onClick={copyScript}
+                onClick={copyDialogue}
                 className="px-3 py-1 rounded-lg bg-chip text-xs font-semibold hover:bg-line"
+                title="출연자에게 줄 대사만"
               >
-                📋 복사
+                🎙️ 대사만 복사
+              </button>
+              <button
+                onClick={copyDirection}
+                className="px-3 py-1 rounded-lg bg-chip text-xs font-semibold hover:bg-line"
+                title="디렉터/편집자에게 줄 연출 큐시트만"
+              >
+                🎨 연출만 복사
+              </button>
+              <button
+                onClick={copyAll}
+                className="px-3 py-1 rounded-lg bg-brand text-white text-xs font-bold hover:bg-brandHover"
+              >
+                📋 전체 복사
               </button>
               {!streaming && (
                 <button
@@ -151,9 +197,27 @@ export default function Step4Generate() {
               )}
             </div>
           </div>
-          <pre className="whitespace-pre-wrap text-[13px] text-ink leading-relaxed font-sans">
-            {scriptText}
-          </pre>
+
+          {/* 컬럼 헤더 */}
+          <div className="hidden md:grid md:grid-cols-[1fr_1.2fr] gap-3 mb-2 px-1">
+            <div className="text-[10px] font-bold text-mute uppercase tracking-wider">
+              🎙️ 출연자 대사 (그대로 읽기)
+            </div>
+            <div className="text-[10px] font-bold text-mute uppercase tracking-wider">
+              🎨 화면 연출 (텍스트/시각/디렉션)
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {rows.length === 0 && (
+              <div className="text-center text-mute text-sm py-8">
+                생성 중...
+              </div>
+            )}
+            {rows.map((row, i) => (
+              <ScriptRowView key={i} row={row} />
+            ))}
+          </div>
         </div>
       )}
 
@@ -162,6 +226,66 @@ export default function Step4Generate() {
           ⚠️ {error}
         </div>
       )}
+    </div>
+  );
+}
+
+function ScriptRowView({ row }: { row: ScriptRow }) {
+  // 머리말 (헤더 없는 leading row) — 단일 셀
+  if (!row.header && (row.dialogue.length || row.direction.length || row.other.length)) {
+    return (
+      <div className="rounded-lg bg-chip/40 p-3 text-[13px] text-sub leading-relaxed">
+        {[...row.dialogue, ...row.direction, ...row.other].map((l, i) => (
+          <p key={i}>{l}</p>
+        ))}
+      </div>
+    );
+  }
+  if (!row.header) return null;
+
+  return (
+    <div className="rounded-xl border border-line">
+      {/* 시간대 헤더 */}
+      <div className="px-3 py-2 bg-chip/60 border-b border-line rounded-t-xl">
+        <span className="text-[12px] font-bold text-ink">[{row.header}]</span>
+      </div>
+      {/* 2-column body */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] divide-y md:divide-y-0 md:divide-x divide-line">
+        {/* 왼쪽 — 대사 */}
+        <div className="p-3 space-y-2 min-h-[60px]">
+          {row.dialogue.length === 0 && (
+            <p className="text-[11px] text-mute italic">대사 없음 (B-roll/연출만)</p>
+          )}
+          {row.dialogue.map((d, i) => (
+            <p
+              key={i}
+              className="text-[13.5px] text-ink leading-relaxed font-medium"
+            >
+              {d}
+            </p>
+          ))}
+        </div>
+        {/* 오른쪽 — 연출 */}
+        <div className="p-3 space-y-1.5 min-h-[60px] bg-brandSoft/15">
+          {row.direction.length === 0 && row.other.length === 0 && (
+            <p className="text-[11px] text-mute italic">연출 없음</p>
+          )}
+          {row.direction.map((d, i) => (
+            <p key={i} className="text-[12.5px] text-sub leading-relaxed">
+              <span className="mr-1.5 text-brand">▸</span>
+              {d}
+            </p>
+          ))}
+          {row.other.map((o, i) => (
+            <p
+              key={i}
+              className="text-[12.5px] text-mute leading-relaxed italic"
+            >
+              {o}
+            </p>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
