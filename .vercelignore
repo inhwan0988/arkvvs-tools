@@ -1,0 +1,13 @@
+# Helper desktop app — Vercel 빌드와 무관 (별도 Electron 앱)
+apps/
+
+# 빌드 결과물
+**/node_modules
+**/dist
+**/out
+**/.next/cache
+
+# 임시 / 로컬
+*.log
+*.tsbuildinfo
+.DS_Store
