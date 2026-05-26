@@ -67,7 +67,6 @@ export default function ArkClipperPage() {
             ✨ NEW in v{APP_VERSION} (2026-05-26 빌드)
           </p>
           <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• <b>🎬 캡컷 반자동 편집 모드 추가</b> — 우상단 버튼으로 mp3 업로드 → 자막 + 무음 컷 + 포인트 자막 + 효과음 자동 생성 (BETA)</li>
             <li>• <b>🔧 자동 업데이트 실제로 작동 fix</b> — 그동안 macOS는 .zip 누락으로 자동 업데이트가 작동 안 했어요. 이번 한 번만 수동으로 받으시면 다음부터 백그라운드 자동 업데이트 정상 동작</li>
             <li>• <b>업데이트 진행률 명확히 표시</b> — 새 버전 발견 시 다이얼로그, 별도 진행률 창, dock/taskbar progress bar</li>
             <li>• Claude 모델 fallback chain (claude-sonnet-4-5 → 3-5-latest → 3-5-20241022) — 외부 사용자 모델 404 사전 차단</li>
