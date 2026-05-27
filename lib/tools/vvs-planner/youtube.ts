@@ -68,6 +68,24 @@ const CHANNEL_SIZE_RANGE: Record<ChannelSize, [number, number]> = {
   large: [1_000_000, Number.MAX_SAFE_INTEGER],
 };
 
+/**
+ * 노이즈 데이터 hard floor (사용자 필터와 무관하게 항상 적용).
+ * 조회수 16, 구독자 1 같은 outlier가 VVS 계산에서 매우 큰 값을 만들어 결과 오염.
+ * - 조회수 1000회 미만 영상 제외
+ * - 구독자 100명 미만 채널 제외
+ * 이 두 임계 미만 데이터는 통계적으로 의미가 적고, "떡상 사례"로 추천하기에 부적절.
+ */
+const NOISE_FLOOR_MIN_VIEWS = 1000;
+const NOISE_FLOOR_MIN_SUBS = 100;
+
+/**
+ * VVS 계산 시 작은 분모(구독자) 안정화용 prior (Laplace smoothing).
+ * subs=10, views=1000 → naive vvs=100인데, 신뢰 낮음.
+ * smoothed vvs = views / (subs + K), K=100 정도로 outlier 자연 감쇠.
+ * 정렬용 score에만 적용. 표시 vvs(views/subs)는 그대로.
+ */
+const VVS_SMOOTHING_K = 100;
+
 const PERIOD_DAYS: Record<Period, number | null> = {
   all: null,
   "6m": 183,
@@ -344,6 +362,10 @@ async function searchWithSingleKey(
       titleLower.includes("#shorts") ||
       titleLower.includes("#쇼츠");
 
+    // ━━ 노이즈 floor (항상 적용) — 조회수 16, 구독자 1 같은 outlier 제외
+    if (views < NOISE_FLOOR_MIN_VIEWS) continue;
+    if (subs < NOISE_FLOOR_MIN_SUBS) continue;
+
     if (views < filters.minViews) continue;
     if (subs < sizeMin || subs >= sizeMax) continue;
     if (cutoff !== null) {
@@ -379,10 +401,12 @@ async function searchWithSingleKey(
     if (filters.captionsOnly && !hasCaption) continue;
 
     const vvs = subs > 0 ? views / subs : 0;
+    // 정렬용 score는 smoothing 적용 — 작은 구독자수로 인한 outlier 정렬 안정화
+    const vvsSmoothed = views / (subs + VVS_SMOOTHING_K);
     const recMult = recencyMult(item.snippet.publishedAt);
     const eng = engagementMultiplier(likes, comments, views);
     const score =
-      Math.round(vvs * recMult * eng.mult * 100) / 100;
+      Math.round(vvsSmoothed * recMult * eng.mult * 100) / 100;
 
     // v3: VVS 최소 배수 필터
     if (filters.minVvs && vvs < filters.minVvs) continue;
