@@ -43,16 +43,23 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as CreateBody;
 
-  if (!body.title?.trim()) return NextResponse.json({ error: "title 필수" }, { status: 400 });
-  if (!body.platform || !PLATFORMS.includes(body.platform)) {
-    return NextResponse.json({ error: "platform 유효하지 않음" }, { status: 400 });
-  }
+  // destination_url만 필수 — 나머지는 다 옵션 (referer로 자동 분류 가능)
   if (!body.destination_url || !/^https?:\/\//.test(body.destination_url)) {
     return NextResponse.json({ error: "destination_url은 http(s):// 로 시작해야 합니다" }, { status: 400 });
   }
-  if (!body.posted_at) {
-    return NextResponse.json({ error: "posted_at 필수" }, { status: 400 });
+  // platform이 누락이거나 잘못된 값이면 etc로 폴백
+  const platform = body.platform && PLATFORMS.includes(body.platform) ? body.platform : "etc";
+  // title 없으면 destination_url의 host로 폴백
+  let title = body.title?.trim();
+  if (!title) {
+    try {
+      title = new URL(body.destination_url).hostname;
+    } catch {
+      title = body.destination_url.slice(0, 80);
+    }
   }
+  // posted_at 없으면 now
+  const postedAt = body.posted_at || new Date().toISOString();
 
   // 중복 안 되는 short_id 생성 (최대 5회 시도)
   let shortId = "";
@@ -74,10 +81,10 @@ export async function POST(req: NextRequest) {
     .from("sns_contents")
     .insert({
       user_id: user.id,
-      platform: body.platform,
-      title: body.title.trim(),
+      platform,
+      title,
       content_url: body.content_url?.trim() || null,
-      posted_at: body.posted_at,
+      posted_at: postedAt,
       short_id: shortId,
       destination_url: body.destination_url,
       views: body.views ?? 0,

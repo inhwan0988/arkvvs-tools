@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSnsAdminClient } from "@/lib/tools/sns-tracker/supabase-admin";
 import { isBotUserAgent } from "@/lib/tools/sns-tracker/bot-detect";
+import { classifyTrafficSource } from "@/lib/tools/sns-tracker/referer-classify";
 import crypto from "node:crypto";
 
 export const runtime = "nodejs";
@@ -73,7 +74,10 @@ export async function GET(
     : null;
 
   const isBot = isBotUserAgent(ua);
-  const utm_source = incomingUrl.searchParams.get("utm_source");
+  // referer / UA 기반 자동 플랫폼 감지 (사용자가 같은 단축 URL을 여러 SNS에 붙여도 분리 집계 가능)
+  const detectedPlatform = classifyTrafficSource(referer, ua);
+  const utm_source =
+    incomingUrl.searchParams.get("utm_source") ?? detectedPlatform;
   const utm_medium = incomingUrl.searchParams.get("utm_medium");
   const utm_campaign = incomingUrl.searchParams.get("utm_campaign");
 
