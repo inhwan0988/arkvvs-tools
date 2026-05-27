@@ -20,6 +20,7 @@ const config = require('./config');
 const api = require('./api');
 const creds = require('./credentials');
 const ff = require('./ffmpeg-ops');
+const draftWriter = require('./capcut-draft-writer');
 
 const isDev = !app.isPackaged;
 
@@ -416,7 +417,7 @@ function pushJobToRecent(job) {
 async function handleApplyJob(job) {
   if (!state.credentials) return;
   logLine('[apply] start', job.id);
-  setStatus(`영상 처리 중 — ${job.video_name}`);
+  setStatus(`캡컷 프로젝트 수정 중 — ${job.video_name}`);
   pushJobToRecent({ ...job, status: 'applying' });
 
   try {
@@ -426,43 +427,47 @@ async function handleApplyJob(job) {
     if (!result) throw new Error('result_json 없음 — 분석이 안 끝났습니다');
 
     const projectDir = job.project_dir;
+    if (!projectDir || !fs.existsSync(projectDir)) {
+      throw new Error(`캡컷 프로젝트 폴더 없음: ${projectDir}`);
+    }
+
+    // capcut-cli로 draft_info.json 직접 수정 (무음컷 + 자막 + 포인트자막)
+    // saveDraft가 자동으로 .bak 백업 생성
+    const stats = await draftWriter.applyResultToCapcut(projectDir, result);
+
+    logLine(
+      `[apply] draft updated: cuts=${stats.cuts} captions=${stats.captions} points=${stats.points} → ${stats.draftPath}`,
+    );
+
+    // 부가 산출물도 함께 저장 — 무음 잘린 mp4 + .srt + 가이드 (옵션)
     const baseName = path.basename(job.video_name, path.extname(job.video_name));
     const outputDir = path.join(projectDir, 'resources', 'ark-output');
     fs.mkdirSync(outputDir, { recursive: true });
-
-    const outputVideoPath = path.join(outputDir, `${baseName}_cut.mp4`);
     const outputSrtPath = path.join(outputDir, `${baseName}.srt`);
     const outputGuidePath = path.join(outputDir, `${baseName}_guide.txt`);
 
-    // 1. 무음 cut된 영상
-    await ff.cutSilences(
-      job.video_path,
-      outputVideoPath,
-      result.silences || [],
-      result.duration || 0,
-    );
-
-    // 2. .srt 자막
-    const srt = buildSrt(result.subtitles || []);
-    fs.writeFileSync(outputSrtPath, srt);
-
-    // 3. 가이드 txt (포인트 자막 + 효과음)
-    const guide = buildGuide(result);
-    fs.writeFileSync(outputGuidePath, guide);
+    fs.writeFileSync(outputSrtPath, buildSrt(result.subtitles || []));
+    fs.writeFileSync(outputGuidePath, buildGuide(result));
 
     await api.updateJob(state.credentials, job.id, {
       status: 'done',
-      outputVideoPath,
+      outputVideoPath: stats.draftPath, // draft 파일 path
       outputSrtPath,
       outputGuidePath,
     });
 
     setStatus('연동 완료 — 캡컷 폴더 감시 중');
+    const cutsLabel =
+      stats.cuts === -1
+        ? '컷 skip (수동편집 감지)'
+        : stats.cuts > 0
+          ? `무음컷 ${stats.cuts}개 split`
+          : '무음 없음';
     notify(
-      '🎉 처리 완료',
-      `${baseName}_cut.mp4 + .srt + 가이드 저장됨\n캡컷에서 import해주세요.`,
+      '🎉 캡컷 프로젝트 자동 편집 완료',
+      `${cutsLabel}, 자막 ${stats.captions}, 포인트 ${stats.points}\n캡컷을 열면 timeline에 적용됨\n백업: ${path.basename(stats.backupPath)}`,
     );
-    shell.openPath(outputDir);
+    shell.openPath(projectDir);
   } catch (e) {
     logLine('[apply] failed:', e.message);
     await api.updateJob(state.credentials, job.id, {
@@ -470,7 +475,7 @@ async function handleApplyJob(job) {
       errorMessage: e.message,
     });
     setStatus('연동 완료 — 캡컷 폴더 감시 중');
-    notify('❌ 영상 처리 실패', e.message);
+    notify('❌ 캡컷 프로젝트 수정 실패', e.message);
   }
 }
 

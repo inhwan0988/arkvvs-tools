@@ -4,8 +4,12 @@
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffprobePath = require('@ffmpeg-installer/ffmpeg').path; // ffmpeg-installer ships ffprobe? check
+// asar archive 안의 경로를 unpacked 경로로 치환 — packaging 후 spawn 가능하게 함
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path.replace(
+  'app.asar',
+  'app.asar.unpacked',
+);
+const ffprobePath = ffmpegPath;
 const { AUDIO_OPTS } = require('./config');
 
 function runFfmpeg(args, onProgress) {
