@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import PairingPanel from "./PairingPanel";
 import JobList from "./JobList";
+import UpdateBanner from "./UpdateBanner";
 import type { CapcutDevice, CapcutJob } from "@/lib/tools/capcut-helper/types";
 
 export default function HelperPanel() {
@@ -57,6 +58,7 @@ export default function HelperPanel() {
         <PairingPanel onPaired={refresh} />
       ) : (
         <>
+          <UpdateBanner device={devices[0]} />
           <PairedHeader devices={devices} onChanged={refresh} />
           <JobList jobs={jobs} onChanged={refresh} />
         </>

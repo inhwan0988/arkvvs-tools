@@ -1,6 +1,6 @@
 {
   "name": "arkvvs-capcut-helper",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "main": "electron/main.js",
   "description": "캡컷 데스크탑 + arkvvs-tools 웹앱 실시간 연동 helper",

@@ -24,9 +24,13 @@ create table if not exists public.capcut_devices (
   -- Helper 상태
   last_seen_at timestamptz,
   capcut_dir_path text,                                              -- 감지된 캡컷 폴더 (Helper 알림용)
+  helper_version text,                                               -- ping 시 X-Helper-Version 헤더에서 갱신
 
   created_at timestamptz not null default now()
 );
+
+-- 기존 row에 컬럼 추가 (마이그레이션)
+alter table public.capcut_devices add column if not exists helper_version text;
 
 create index if not exists capcut_devices_user_idx on public.capcut_devices(user_id) where user_id is not null;
 create index if not exists capcut_devices_pair_idx on public.capcut_devices(pairing_code) where pairing_code is not null;

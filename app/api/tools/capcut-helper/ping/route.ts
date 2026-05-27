@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
 
   const admin = createSnsAdminClient();
 
+  // Helper 버전 헤더 → DB 갱신 (옵션 — 없어도 OK)
+  const helperVersion = req.headers.get("x-helper-version");
+  if (helperVersion && /^[\w.-]{1,20}$/.test(helperVersion)) {
+    await admin
+      .from("capcut_devices")
+      .update({ helper_version: helperVersion })
+      .eq("id", authed.deviceId);
+  }
+
   if (!authed.userId) {
     // 아직 페어링 안 됨 — paired=false 반환
     return NextResponse.json({ paired: false, pendingJobs: [] });

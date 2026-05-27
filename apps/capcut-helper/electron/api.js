@@ -3,9 +3,19 @@
  */
 const { WEB_BASE_URL } = require('./config');
 
+const HELPER_VERSION = (() => {
+  try {
+    return require('../package.json').version;
+  } catch {
+    return 'unknown';
+  }
+})();
+
 function authHeader(credentials) {
-  if (!credentials?.deviceId || !credentials?.deviceSecret) return {};
+  const base = { 'X-Helper-Version': HELPER_VERSION };
+  if (!credentials?.deviceId || !credentials?.deviceSecret) return base;
   return {
+    ...base,
     Authorization: `Bearer ${credentials.deviceId}.${credentials.deviceSecret}`,
   };
 }

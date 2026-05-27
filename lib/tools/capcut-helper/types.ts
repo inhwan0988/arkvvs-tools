@@ -29,6 +29,7 @@ export interface CapcutDevice {
   paired_at: string | null;
   last_seen_at: string | null;
   capcut_dir_path: string | null;
+  helper_version: string | null;
   created_at: string;
 }
 

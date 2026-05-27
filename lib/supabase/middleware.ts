@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   "/api/tools/capcut-helper/ping",
   "/api/tools/capcut-helper/jobs",
   "/api/tools/capcut-helper/upload-url",
+  "/api/tools/capcut-helper/latest-version",
   // 단축 URL redirect 라우트 — 익명 클릭도 받아야 함
   "/r/",
 ];
