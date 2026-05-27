@@ -1,6 +1,8 @@
 # Helper desktop app — Vercel 빌드와 무관 (별도 Electron 앱)
 apps/
 
+# sharp는 native binary라 platform-specific (Vercel은 자체로 해결)
+
 # 빌드 결과물
 **/node_modules
 **/dist
