@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/tools/sns-tracker/cron/sync-yt",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

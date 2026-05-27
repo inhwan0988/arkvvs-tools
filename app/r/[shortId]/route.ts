@@ -34,7 +34,7 @@ export async function GET(
 
   const { data: content } = await supabase
     .from("sns_contents")
-    .select("id, destination_url, archived_at")
+    .select("id, destination_url, archived_at, platform, short_id, title")
     .eq("short_id", shortId)
     .maybeSingle();
 
@@ -42,12 +42,24 @@ export async function GET(
     return new NextResponse("링크를 찾을 수 없습니다.", { status: 404 });
   }
 
-  // Destination URL에 UTM 파라미터 보존 (들어온 URL의 query 그대로 넘김)
+  // Destination URL에 UTM 파라미터 자동 부착 (사용자가 명시한 값 우선)
   const incomingUrl = new URL(req.url);
   const dest = new URL(content.destination_url);
+
+  // 1) 들어온 URL의 query 보존 (사용자가 URL에 추가한 utm 등)
   incomingUrl.searchParams.forEach((v, k) => {
     if (!dest.searchParams.has(k)) dest.searchParams.set(k, v);
   });
+  // 2) 우리가 자동 부착 — 광고 추적용
+  if (!dest.searchParams.has("utm_source")) {
+    dest.searchParams.set("utm_source", content.platform || "sns");
+  }
+  if (!dest.searchParams.has("utm_medium")) {
+    dest.searchParams.set("utm_medium", "arkvvs_short");
+  }
+  if (!dest.searchParams.has("utm_campaign")) {
+    dest.searchParams.set("utm_campaign", content.short_id);
+  }
 
   // Click 비동기 기록 (실패해도 redirect는 계속)
   const ua = req.headers.get("user-agent") || "";

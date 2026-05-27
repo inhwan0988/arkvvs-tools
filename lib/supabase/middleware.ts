@@ -15,6 +15,10 @@ const PUBLIC_PATHS = [
   "/api/tools/capcut-helper/latest-version",
   // 단축 URL redirect 라우트 — 익명 클릭도 받아야 함
   "/r/",
+  // QR 코드 — 외부에서 접근 가능해야 (단축 URL과 함께 공유)
+  "/api/tools/sns-tracker/qr/",
+  // Vercel cron — Bearer auth로 보호됨
+  "/api/tools/sns-tracker/cron/",
 ];
 
 export async function updateSession(request: NextRequest) {

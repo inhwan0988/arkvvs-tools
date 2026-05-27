@@ -7,6 +7,16 @@ import {
   type Platform,
 } from "@/lib/tools/sns-tracker/types";
 
+type ResolvedMeta = {
+  platform: Platform;
+  title: string | null;
+  thumbnailUrl: string | null;
+  channelName: string | null;
+  publishedAt: string | null;
+  externalId: string | null;
+  canonicalUrl: string;
+};
+
 export default function RegisterForm({
   onSuccess,
 }: {
@@ -16,16 +26,57 @@ export default function RegisterForm({
   const [title, setTitle] = useState("");
   const [contentUrl, setContentUrl] = useState("");
   const [destinationUrl, setDestinationUrl] = useState("");
-  const [postedAt, setPostedAt] = useState(() => {
+  const [postedAt, setPostedAt] = useState(() => localDatetimeNow());
+  const [views, setViews] = useState(0);
+  const [notes, setNotes] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(true);
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  function localDatetimeNow() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
-  });
-  const [views, setViews] = useState(0);
-  const [notes, setNotes] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  }
+
+  async function resolveAndFill(url: string) {
+    const trimmed = url.trim();
+    if (!trimmed || !/^https?:\/\//.test(trimmed)) return;
+    setResolving(true);
+    setError(null);
+    setAutoFilled(false);
+    try {
+      const res = await fetch("/api/tools/sns-tracker/resolve-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.error ?? "메타데이터 추출 실패");
+      }
+      const meta = (await res.json()) as ResolvedMeta;
+      // 자동 채우기 — 사용자가 이미 입력한 값은 덮지 않음
+      setPlatform(meta.platform);
+      if (meta.title && !title) setTitle(meta.title);
+      if (meta.thumbnailUrl) setThumbnailUrl(meta.thumbnailUrl);
+      if (meta.publishedAt) {
+        try {
+          const d = new Date(meta.publishedAt);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          setPostedAt(d.toISOString().slice(0, 16));
+        } catch {}
+      }
+      setAutoFilled(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "오류");
+    } finally {
+      setResolving(false);
+    }
+  }
 
   async function submit() {
     if (!title.trim()) return setError("제목을 입력해주세요.");
@@ -52,11 +103,15 @@ export default function RegisterForm({
         const e = await res.json();
         throw new Error(e.error ?? "등록 실패");
       }
+      // 초기화
       setTitle("");
       setContentUrl("");
       setDestinationUrl("");
       setViews(0);
       setNotes("");
+      setThumbnailUrl(null);
+      setAutoFilled(false);
+      setPostedAt(localDatetimeNow());
       onSuccess();
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류");
@@ -71,7 +126,7 @@ export default function RegisterForm({
         <div>
           <h3 className="text-sm font-bold text-ink">➕ 새 콘텐츠 등록</h3>
           <p className="text-[11px] text-sub mt-0.5">
-            SNS에 게시한 콘텐츠 + 본문에 넣을 단축 URL을 발급받습니다.
+            콘텐츠 URL만 붙여넣으면 제목·썸네일·플랫폼·게시일 자동 채워져요.
           </p>
         </div>
         <button
@@ -84,7 +139,63 @@ export default function RegisterForm({
 
       {expanded && (
         <div className="space-y-3">
-          {/* 플랫폼 선택 */}
+          {/* 1. URL paste (auto-resolve) */}
+          <div>
+            <label className="text-[11px] font-bold text-sub block mb-1">
+              ⚡ 콘텐츠 URL 붙여넣기 (자동 인식)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={contentUrl}
+                onChange={(e) => setContentUrl(e.target.value)}
+                onPaste={(e) => {
+                  const v = e.clipboardData.getData("text").trim();
+                  if (/^https?:\/\//.test(v)) {
+                    // 다음 tick에 resolve
+                    setTimeout(() => resolveAndFill(v), 50);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value && e.target.value !== contentUrl) return;
+                  if (e.target.value && !autoFilled) resolveAndFill(e.target.value);
+                }}
+                placeholder="https://youtube.com/watch?v=... 또는 https://instagram.com/p/..."
+                className="flex-1 bg-chip rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30"
+              />
+              <button
+                onClick={() => contentUrl && resolveAndFill(contentUrl)}
+                disabled={resolving || !contentUrl}
+                className="rounded-lg bg-brand text-white px-3 py-2 text-xs font-bold hover:bg-brandHover disabled:opacity-50 shrink-0"
+              >
+                {resolving ? "추출 중..." : "🔍 자동 인식"}
+              </button>
+            </div>
+            {autoFilled && (
+              <p className="text-[11px] text-success font-semibold mt-1">
+                ✓ 자동 채워졌어요 — 필요시 수정만 하세요
+              </p>
+            )}
+          </div>
+
+          {/* 썸네일 미리보기 */}
+          {thumbnailUrl && (
+            <div className="flex gap-3 items-start rounded-lg bg-chip/40 p-2">
+              <picture>
+                <img
+                  src={thumbnailUrl}
+                  alt="thumbnail"
+                  className="w-24 h-14 object-cover rounded shrink-0"
+                  referrerPolicy="no-referrer"
+                />
+              </picture>
+              <p className="text-[11px] text-sub mt-1 line-clamp-3">
+                {title || "(제목 없음)"}
+              </p>
+            </div>
+          )}
+
+          {/* 2. 플랫폼 (자동 인식 + 수정 가능) */}
           <div>
             <label className="text-[11px] font-bold text-sub block mb-1">
               플랫폼
@@ -106,10 +217,10 @@ export default function RegisterForm({
             </div>
           </div>
 
-          {/* 제목 */}
+          {/* 3. 제목 */}
           <div>
             <label className="text-[11px] font-bold text-sub block mb-1">
-              제목 / 영상 이름 *
+              제목 *
             </label>
             <input
               type="text"
@@ -120,10 +231,10 @@ export default function RegisterForm({
             />
           </div>
 
-          {/* 목적지 URL */}
+          {/* 4. 목적지 URL — 핵심 입력 */}
           <div>
             <label className="text-[11px] font-bold text-sub block mb-1">
-              목적지 URL * <span className="text-mute font-normal">(사람들이 단축 URL을 누르면 이동할 곳)</span>
+              🎯 목적지 URL * <span className="text-mute font-normal">(사람들이 단축 URL을 누르면 갈 곳)</span>
             </label>
             <input
               type="url"
@@ -134,21 +245,7 @@ export default function RegisterForm({
             />
           </div>
 
-          {/* 컨텐츠 URL */}
-          <div>
-            <label className="text-[11px] font-bold text-sub block mb-1">
-              콘텐츠 URL <span className="text-mute font-normal">(SNS 게시물 자체 URL, 옵션)</span>
-            </label>
-            <input
-              type="url"
-              value={contentUrl}
-              onChange={(e) => setContentUrl(e.target.value)}
-              placeholder="https://youtube.com/watch?v=..."
-              className="w-full bg-chip rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30"
-            />
-          </div>
-
-          {/* 게시일 + 조회수 */}
+          {/* 5. 게시일 + 조회수 */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-bold text-sub block mb-1">
@@ -163,7 +260,7 @@ export default function RegisterForm({
             </div>
             <div>
               <label className="text-[11px] font-bold text-sub block mb-1">
-                현재 조회수 <span className="text-mute font-normal">(나중에 업데이트 가능)</span>
+                현재 조회수
               </label>
               <input
                 type="number"
@@ -175,7 +272,7 @@ export default function RegisterForm({
             </div>
           </div>
 
-          {/* 메모 */}
+          {/* 6. 메모 */}
           <div>
             <label className="text-[11px] font-bold text-sub block mb-1">
               메모 (옵션)

@@ -7,6 +7,7 @@ import RegisterForm from "@/components/tools/sns-tracker/RegisterForm";
 import ContentList from "@/components/tools/sns-tracker/ContentList";
 import PlatformBreakdown from "@/components/tools/sns-tracker/PlatformBreakdown";
 import WeeklyAnalysis from "@/components/tools/sns-tracker/WeeklyAnalysis";
+import YoutubeChannels from "@/components/tools/sns-tracker/YoutubeChannels";
 import type { SnsContentStats } from "@/lib/tools/sns-tracker/types";
 
 export default function SnsTrackerPage() {
@@ -84,6 +85,9 @@ export default function SnsTrackerPage() {
 
         {/* Summary */}
         <SummaryCards contents={contents} />
+
+        {/* YouTube 채널 자동 sync */}
+        <YoutubeChannels onChanged={fetchContents} />
 
         {/* 등록 + 플랫폼 분할 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

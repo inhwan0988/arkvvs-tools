@@ -159,6 +159,16 @@ export default function ContentList({
                         {copied === c.short_id ? "✓ 복사됨" : "복사"}
                       </button>
                       <a
+                        href={`/api/tools/sns-tracker/qr/${c.short_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={`qr-${c.short_id}.svg`}
+                        className="text-[11px] text-brand font-bold hover:underline"
+                        title="단축 URL의 QR 코드 다운로드"
+                      >
+                        🔲 QR
+                      </a>
+                      <a
                         href={c.destination_url}
                         target="_blank"
                         rel="noopener noreferrer"
