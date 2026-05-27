@@ -138,13 +138,12 @@ export const TOOLS: Tool[] = [
   {
     slug: "spread",
     name: "Spread",
-    description: "Meta · Instagram 자동 게시 도구 (Arc Publisher)",
+    description: "한 번 작성 → Instagram / Facebook / Threads 동시 게시 (자동 비율 변환 + 예약)",
     emoji: "📢",
-    href: "https://spread-joshua-2770s-projects.vercel.app",
-    status: "live",
+    href: "/tools/spread",
+    status: "beta",
     color: "bg-premiumSoft",
     category: "콘텐츠 활용",
-    external: true,
     membersOnly: true,
   },
 ];
