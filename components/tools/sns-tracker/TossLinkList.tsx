@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   PLATFORM_META,
   type SnsContentStats,
@@ -19,9 +20,32 @@ export default function TossLinkList({
   onChanged: () => void;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const sorted = [...contents].sort(
     (a, b) => (b.click_count ?? 0) - (a.click_count ?? 0),
   );
+
+  async function saveTitle(contentId: string) {
+    if (!titleDraft.trim()) {
+      setEditingId(null);
+      return;
+    }
+    setSaving(true);
+    try {
+      await fetch("/api/tools/sns-tracker/contents", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: contentId, title: titleDraft.trim() }),
+      });
+      onChanged();
+      setEditingId(null);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function copy(shortId: string) {
     await navigator.clipboard.writeText(`${baseUrl}/r/${shortId}`);
@@ -72,19 +96,57 @@ export default function TossLinkList({
                 {meta.emoji}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-ink truncate" title={c.title}>
-                  {c.title}
-                </p>
-                <code className="text-[11px] text-sub font-mono break-all">
-                  /r/{c.short_id}
-                </code>
+                {editingId === c.content_id ? (
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveTitle(c.content_id);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      className="flex-1 bg-chip rounded-lg px-2 py-1 text-sm font-bold text-ink focus:outline-none focus:bg-white"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        saveTitle(c.content_id);
+                      }}
+                      disabled={saving}
+                      className="rounded-lg bg-brand text-white px-2 py-1 text-[11px] font-bold disabled:opacity-50"
+                    >
+                      저장
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href={`/tools/sns-tracker/${c.short_id}`}
+                    className="block group"
+                  >
+                    <p
+                      className="text-sm font-bold text-ink truncate group-hover:text-brand transition"
+                      title={c.title}
+                    >
+                      {c.title}
+                    </p>
+                    <code className="text-[11px] text-sub font-mono break-all">
+                      /r/{c.short_id}
+                    </code>
+                  </Link>
+                )}
               </div>
-              <div className="text-right shrink-0">
+              <Link
+                href={`/tools/sns-tracker/${c.short_id}`}
+                className="text-right shrink-0 hover:opacity-80 transition"
+              >
                 <p className="text-xl font-bold text-brand leading-none">
                   {fmt(c.click_count ?? 0)}
                 </p>
                 <p className="text-[10px] text-mute mt-0.5">클릭</p>
-              </div>
+              </Link>
             </div>
 
             {/* 액션 */}
@@ -104,15 +166,21 @@ export default function TossLinkList({
               >
                 🔲 QR
               </a>
-              <a
-                href={c.destination_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-mute hover:text-ink truncate max-w-[200px]"
-                title={c.destination_url}
+              <button
+                onClick={() => {
+                  setTitleDraft(c.title);
+                  setEditingId(c.content_id);
+                }}
+                className="text-[11px] rounded-lg bg-chip text-ink font-bold px-3 py-1.5 hover:bg-line"
               >
-                → {short(c.destination_url)}
-              </a>
+                ✏️ 이름
+              </button>
+              <Link
+                href={`/tools/sns-tracker/${c.short_id}`}
+                className="text-[11px] rounded-lg bg-chip text-ink font-bold px-3 py-1.5 hover:bg-line"
+              >
+                📊 분석
+              </Link>
               <button
                 onClick={() => remove(c.content_id)}
                 className="ml-auto text-[11px] text-mute hover:text-danger"
