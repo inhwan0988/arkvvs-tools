@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWizard } from "./WizardContext";
 import SearchHistory, { type SearchHistoryItem } from "./SearchHistory";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import type { ReelResult } from "@/lib/tools/insta-planner/types";
 
 export default function Step1ChannelInput() {
@@ -205,9 +206,12 @@ export default function Step1ChannelInput() {
       </button>
 
       {error && (
-        <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-          ⚠️ {error}
-        </div>
+        <ErrorWithHint
+          message={error}
+          toolSlug="insta-planner"
+          route="/api/tools/insta-planner/fetch-channels"
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {/* 안내 */}
