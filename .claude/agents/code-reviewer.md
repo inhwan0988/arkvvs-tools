@@ -52,6 +52,9 @@ PR을 만들기 전 자체 코드 리뷰. 다음 순서로 점검.
 ## J. 에러 메시지
 - 사용자 친화 (영문 stack trace 그대로 노출 X)
 - `console.error`로 디버그 로그는 OK
+- **사용자에게 보여주는 에러 박스는 `<ErrorWithHint>` 사용** — 자체 `<div className="...bg-dangerSoft...">` 또는 inline `<p>` 에러 표시는 ❌
+- 자동 보고(`/api/log-error`) + 친절 안내(`lib/error-hints.ts`) 자동 작동
+- 새 흔한 에러 패턴 발견 시 `lib/error-hints.ts`에 추가 권장
 
 # 4단계: 성능
 
