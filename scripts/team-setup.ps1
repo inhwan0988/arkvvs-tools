@@ -1,53 +1,57 @@
-# ARK Tools — Windows 직원 자동 셋업 스크립트
-# 사용: PowerShell에서 joshua가 준 한 줄 명령으로 다운로드 + 실행됨
+﻿# ARK Tools - Windows Team Auto-Setup
+# Usage: one-line command from joshua's Mac, paste into PowerShell
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
-Write-Host "" -ForegroundColor Cyan
-Write-Host "╔══════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║  🎬 ARK Tools 자동 셋업 (5-10분)             ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════╝" -ForegroundColor Cyan
+# Force UTF-8 console
+chcp 65001 | Out-Null
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+Write-Host ""
+Write-Host "==================================================" -ForegroundColor Cyan
+Write-Host "  ARK Tools Auto-Setup (5-10 min)" -ForegroundColor Cyan
+Write-Host "==================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ━ Step 1: 필수 도구 설치 ━
-Write-Host "[1/5] GitHub CLI + Node.js 설치 중..." -ForegroundColor Yellow
+# ---------- Step 1: Install tools ----------
+Write-Host "[1/5] Installing GitHub CLI + Node.js..." -ForegroundColor Yellow
 
 function Install-IfMissing($id, $name) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        Write-Host "  → $name 설치 중..."
+        Write-Host "  -> Installing $name..."
         winget install --id $id -e --silent --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
     } else {
-        Write-Host "  ✓ $name 이미 있음"
+        Write-Host "  OK $name already installed"
     }
 }
 
 Install-IfMissing "GitHub.cli" "gh"
 Install-IfMissing "OpenJS.NodeJS.LTS" "node"
 
-# PATH 갱신 (현재 세션)
+# Refresh PATH (current session)
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
             [System.Environment]::GetEnvironmentVariable("Path","User")
 
-# ━ Step 2: GitHub 로그인 ━
+# ---------- Step 2: GitHub login ----------
 Write-Host ""
-Write-Host "[2/5] GitHub 로그인..." -ForegroundColor Yellow
-Write-Host "  → 브라우저에서 본인 GitHub 계정으로 인증해주세요" -ForegroundColor Cyan
+Write-Host "[2/5] GitHub login..." -ForegroundColor Yellow
+Write-Host "  -> Browser will open. Sign in with your GitHub account." -ForegroundColor Cyan
 
 $ghStatus = gh auth status 2>&1
 if ($LASTEXITCODE -ne 0) {
     gh auth login --hostname github.com --git-protocol https --web
 } else {
-    Write-Host "  ✓ 이미 로그인됨"
+    Write-Host "  OK already logged in"
 }
 
-# ━ Step 3: repo clone ━
+# ---------- Step 3: Clone repo ----------
 Write-Host ""
-Write-Host "[3/5] arkvvs-tools repo 받기..." -ForegroundColor Yellow
+Write-Host "[3/5] Cloning arkvvs-tools repo..." -ForegroundColor Yellow
 
-$REPO_DIR = "$HOME\arkvvs-tools"
+$REPO_DIR = "$HOMErkvvs-tools"
 if (Test-Path $REPO_DIR) {
-    Write-Host "  → 이미 있음. git pull로 최신화..."
+    Write-Host "  -> Already exists. Pulling latest..."
     Set-Location $REPO_DIR
     git pull origin main
 } else {
@@ -55,48 +59,45 @@ if (Test-Path $REPO_DIR) {
     Set-Location $REPO_DIR
 }
 
-# ━ Step 4: 의존성 설치 ━
+# ---------- Step 4: npm install ----------
 Write-Host ""
-Write-Host "[4/5] npm install (시간 좀 걸려요, 1-3분)..." -ForegroundColor Yellow
+Write-Host "[4/5] npm install (takes 1-3 min)..." -ForegroundColor Yellow
 npm install --no-audit --no-fund
 
-# ━ Step 5: .env.local 받기 ━
+# ---------- Step 5: .env.local ----------
 Write-Host ""
-Write-Host "[5/5] 환경변수 (.env.local) 받기..." -ForegroundColor Yellow
+Write-Host "[5/5] Downloading .env.local..." -ForegroundColor Yellow
 
 $ENV_URL = $env:ARK_ENV_URL
 if ([string]::IsNullOrEmpty($ENV_URL)) {
-    Write-Host "  ⚠️  ARK_ENV_URL 환경변수가 없어요." -ForegroundColor Red
-    Write-Host "     joshua가 알려준 URL을 입력하세요 (예: http://192.168.0.15:8000/.env.local):"
+    Write-Host "  WARNING: ARK_ENV_URL not set." -ForegroundColor Red
+    Write-Host "     Ask joshua for the URL (e.g. http://192.168.0.57:8000/.env.local):"
     $ENV_URL = Read-Host "  URL"
 }
 
 try {
     Invoke-WebRequest -Uri $ENV_URL -OutFile "$REPO_DIR\.env.local" -UseBasicParsing
-    Write-Host "  ✓ .env.local 받음"
+    Write-Host "  OK .env.local downloaded"
 } catch {
-    Write-Host "  ❌ 받기 실패: $_" -ForegroundColor Red
-    Write-Host "     joshua에게 다시 URL 확인 요청하세요"
+    Write-Host "  ERROR: Failed - $_" -ForegroundColor Red
+    Write-Host "     Ask joshua for the URL again"
 }
 
 Write-Host ""
-Write-Host "╔══════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║  ✅ 셋업 완료!                                ║" -ForegroundColor Green
-Write-Host "╠══════════════════════════════════════════════╣" -ForegroundColor Green
-Write-Host "║  다음:                                       ║" -ForegroundColor Green
-Write-Host "║                                              ║" -ForegroundColor Green
-Write-Host "║  1) 새 PowerShell 창 열기                    ║" -ForegroundColor Green
-Write-Host "║  2) cd ~/arkvvs-tools                        ║" -ForegroundColor Green
-Write-Host "║  3) claude  ← Claude Code 실행                ║" -ForegroundColor Green
-Write-Host "║                                              ║" -ForegroundColor Green
-Write-Host "║  자동으로 CLAUDE.md 로드돼서                 ║" -ForegroundColor Green
-Write-Host "║  ARK Tools 도메인 컨벤션 적용됩니다           ║" -ForegroundColor Green
-Write-Host "║                                              ║" -ForegroundColor Green
-Write-Host "║  웹앱 테스트:                                ║" -ForegroundColor Green
-Write-Host "║   npm run dev                                ║" -ForegroundColor Green
-Write-Host "║   → http://localhost:3000                    ║" -ForegroundColor Green
-Write-Host "║   → 본인 Google 계정으로 로그인               ║" -ForegroundColor Green
-Write-Host "║   → joshua에게 승인 요청                      ║" -ForegroundColor Green
-Write-Host "╚══════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host "==================================================" -ForegroundColor Green
+Write-Host "  DONE!" -ForegroundColor Green
+Write-Host "==================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "막히는 부분 있으면 #dev 채널에서 물어봐요!" -ForegroundColor Cyan
+Write-Host "Next steps:" -ForegroundColor Green
+Write-Host ""
+Write-Host "  1) Open a NEW PowerShell window" -ForegroundColor White
+Write-Host "  2) cd ~/arkvvs-tools" -ForegroundColor White
+Write-Host "  3) claude  (start Claude Code)" -ForegroundColor White
+Write-Host ""
+Write-Host "Web app test:" -ForegroundColor Green
+Write-Host "  npm run dev" -ForegroundColor White
+Write-Host "  -> http://localhost:3000" -ForegroundColor White
+Write-Host "  -> Sign in with your Google account" -ForegroundColor White
+Write-Host "  -> Ask joshua to approve your account" -ForegroundColor White
+Write-Host ""
+Write-Host "Stuck? Ask in #dev channel!" -ForegroundColor Cyan
