@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'rm -rf (/|~|\\$HOME)|sudo |git push --force.*main|supabase db push'; then echo 'BLOCKED: 위험 명령어'; exit 1; fi"
+      }
+    ]
+  }
+}
