@@ -37,7 +37,10 @@ type State = {
   selectedIdea: ContentIdea | null;
   // Step 4: 대본
   script: ContentScript | null;
-  scriptText: string;        // streaming buffer
+  scriptText: string;        // streaming buffer (AI raw, 인터리브 형식)
+  // 사용자가 편집 가능한 두 섹션 (streaming 종료 후 활성화)
+  dialogueDraft: string;
+  directionDraft: string;
   // 본인 프로필
   myProfile: InstaProfile | null;
   // API 키
@@ -63,6 +66,8 @@ type Actions = {
   setScript: (v: ContentScript | null) => void;
   setScriptText: (v: string) => void;
   appendScriptText: (chunk: string) => void;
+  setDialogueDraft: (v: string) => void;
+  setDirectionDraft: (v: string) => void;
   setMyProfile: (v: InstaProfile | null) => void;
   setAnthropicApiKey: (v: string) => void;
   setLoading: (v: boolean) => void;
@@ -88,6 +93,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [selectedIdea, setSelectedIdea] = useState<ContentIdea | null>(null);
   const [script, setScript] = useState<ContentScript | null>(null);
   const [scriptText, setScriptText] = useState("");
+  const [dialogueDraft, setDialogueDraft] = useState("");
+  const [directionDraft, setDirectionDraft] = useState("");
   const [myProfile, setMyProfile] = useState<InstaProfile | null>(null);
   const [anthropicApiKey, setAnthropicApiKey] = useState("");
   const [isLoading, setLoading] = useState(false);
@@ -114,6 +121,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setSelectedIdea(null);
     setScript(null);
     setScriptText("");
+    setDialogueDraft("");
+    setDirectionDraft("");
     setLoading(false);
     setError(null);
   }, []);
@@ -134,6 +143,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       selectedIdea,
       script,
       scriptText,
+      dialogueDraft,
+      directionDraft,
       myProfile,
       anthropicApiKey,
       isLoading,
@@ -153,6 +164,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       setScript,
       setScriptText,
       appendScriptText,
+      setDialogueDraft,
+      setDirectionDraft,
       setMyProfile,
       setAnthropicApiKey,
       setLoading,
@@ -175,6 +188,8 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       selectedIdea,
       script,
       scriptText,
+      dialogueDraft,
+      directionDraft,
       myProfile,
       anthropicApiKey,
       isLoading,

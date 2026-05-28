@@ -73,6 +73,8 @@ export function parseScript(text: string): ScriptRow[] {
     }
     // 빈 라인 — 무시
     if (!trimmed) continue;
+    // streaming 중 partial 헤더 ("[본론" 같은 닫히지 않은 것) — 다음 chunk를 기다림
+    if (trimmed.startsWith("[") && !trimmed.includes("]")) continue;
     // legacy 라인 (옛 응답 또는 prompt 어김) — 연출 컬럼에 표시
     current.other.push(trimmed);
   }
@@ -118,6 +120,35 @@ export function rowsToDirectionOnly(rows: ScriptRow[]): string {
     if (r.header) out.push(`[${r.header}]`);
     for (const d of r.direction) out.push(`• ${d}`);
     for (const o of r.other) out.push(`• ${o}`);
+    out.push("");
+  }
+  return out.join("\n").trim();
+}
+
+/**
+ * 대본 파트 — 시간대 헤더 제거하고 모든 대사를 한 덩어리로.
+ * 출연자가 위에서 아래로 그대로 읽기 좋게 row 사이 빈 줄로 호흡 구분.
+ */
+export function rowsToDialogueSection(rows: ScriptRow[]): string {
+  const out: string[] = [];
+  for (const r of rows) {
+    if (r.dialogue.length === 0) continue;
+    for (const d of r.dialogue) out.push(d);
+    out.push("");
+  }
+  return out.join("\n").trim();
+}
+
+/**
+ * 연출 파트 — 시간대 헤더 제거하고 모든 연출 큐를 한 덩어리로.
+ * 디렉터가 순서대로 따라가도록 bullet (•) 유지.
+ */
+export function rowsToDirectionSection(rows: ScriptRow[]): string {
+  const out: string[] = [];
+  for (const r of rows) {
+    const lines = [...r.direction, ...r.other];
+    if (lines.length === 0) continue;
+    for (const d of lines) out.push(`• ${d}`);
     out.push("");
   }
   return out.join("\n").trim();

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useWizard } from "./WizardContext";
+import SearchHistory, { type SearchHistoryItem } from "./SearchHistory";
 import type { ReelResult } from "@/lib/tools/insta-planner/types";
 
 export default function Step1ChannelInput() {
@@ -24,6 +25,20 @@ export default function Step1ChannelInput() {
   } = useWizard();
 
   const [phase, setPhase] = useState<"input" | "fetching">("input");
+  const [historyReload, setHistoryReload] = useState(0);
+
+  function pickFromHistory(item: SearchHistoryItem) {
+    const handlesText = item.handles
+      .map((h) => `@${h.replace(/^@/, "")}`)
+      .join(", ");
+    setChannelInput(handlesText);
+    if (typeof item.filters?.minIvs === "number") setMinIvs(item.filters.minIvs);
+    if (typeof item.filters?.minFollowers === "number")
+      setMinFollowers(item.filters.minFollowers);
+    if (typeof item.filters?.excludeKeywords === "string")
+      setExcludeKeywords(item.filters.excludeKeywords);
+    setError(null);
+  }
 
   async function handleSearch() {
     const raw = channelInput
@@ -66,6 +81,7 @@ export default function Step1ChannelInput() {
         return;
       }
       setReels(data.reels);
+      setHistoryReload((n) => n + 1);
       goToStep(2);
     } catch (e) {
       setError(e instanceof Error ? e.message : "오류가 발생했습니다.");
@@ -87,6 +103,9 @@ export default function Step1ChannelInput() {
           분석해드립니다.
         </p>
       </div>
+
+      {/* 최근 검색 — 칩 클릭 시 핸들 + 필터 복원 */}
+      <SearchHistory onPick={pickFromHistory} reloadKey={historyReload} />
 
       {/* 채널 입력 */}
       <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
