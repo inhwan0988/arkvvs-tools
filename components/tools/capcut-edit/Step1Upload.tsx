@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import type { ProcessResult } from "@/lib/tools/capcut-edit/types";
 
@@ -152,9 +153,12 @@ export default function Step1Upload() {
       )}
 
       {error && (
-        <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-          ⚠️ {error}
-        </div>
+        <ErrorWithHint
+          message={error}
+          toolSlug="capcut-edit"
+          route="/api/tools/capcut-edit/process"
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {/* 캡컷에서 mp3 추출하는 법 */}

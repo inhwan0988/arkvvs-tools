@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import type { CapcutJob, JobStatus } from "@/lib/tools/capcut-helper/types";
 import { STATUS_LABELS } from "@/lib/tools/capcut-helper/types";
 import JobReviewModal from "./JobReviewModal";
@@ -158,7 +159,16 @@ function JobRow({
         <p className="mt-2 text-[11px] text-danger">⚠️ {job.error_message}</p>
       )}
 
-      {err && <p className="mt-2 text-[11px] text-danger">⚠️ {err}</p>}
+      {err && (
+        <div className="mt-2">
+          <ErrorWithHint
+            message={err}
+            toolSlug="capcut-helper"
+            route="/api/tools/capcut-helper/analyze"
+            onDismiss={() => setErr(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }

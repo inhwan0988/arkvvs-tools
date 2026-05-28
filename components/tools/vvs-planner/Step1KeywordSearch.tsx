@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import VideoCard from "./VideoCard";
 import ChannelProfileCard from "./ChannelProfileCard";
@@ -330,9 +331,13 @@ export default function Step1KeywordSearch() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger leading-relaxed">
-          <span className="mr-1">⚠️</span>
-          {error}
+        <div className="mt-4">
+          <ErrorWithHint
+            message={error}
+            toolSlug="vvs-planner"
+            route="/api/tools/vvs-planner/search"
+            onDismiss={() => setError(null)}
+          />
         </div>
       )}
 

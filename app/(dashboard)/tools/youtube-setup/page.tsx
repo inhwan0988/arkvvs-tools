@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import SettingsBar, { type Provider } from "@/components/tools/youtube-setup/SettingsBar";
 import ScriptInput from "@/components/tools/youtube-setup/ScriptInput";
 import ResultPanel from "@/components/tools/youtube-setup/ResultPanel";
@@ -130,9 +131,13 @@ export default function YouTubeSetupPage() {
         />
         <div className="flex flex-col min-h-[500px]">
           {error && (
-            <div className="mb-3 p-4 rounded-xl2 bg-dangerSoft text-sm font-semibold text-danger flex items-start gap-2">
-              <span>⚠️</span>
-              <span>{error}</span>
+            <div className="mb-3">
+              <ErrorWithHint
+                message={error}
+                toolSlug="youtube-setup"
+                route="/api/tools/youtube-setup/generate"
+                onDismiss={() => setError(null)}
+              />
             </div>
           )}
           {loading && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import type { ContentIdea } from "@/lib/tools/insta-planner/types";
 import {
@@ -282,9 +283,12 @@ export default function Step4Generate() {
       )}
 
       {error && (
-        <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-          ⚠️ {error}
-        </div>
+        <ErrorWithHint
+          message={error}
+          toolSlug="insta-planner"
+          route="/api/tools/insta-planner/generate-script"
+          onDismiss={() => setError(null)}
+        />
       )}
     </div>
   );

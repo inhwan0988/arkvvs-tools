@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import type { ChannelProfile } from "@/lib/tools/vvs-planner/types";
 
@@ -147,7 +148,16 @@ export default function ChannelProfileCard() {
             {busy ? "분석 중..." : "분석"}
           </button>
         </div>
-        {err && <p className="text-xs text-danger mt-2">{err}</p>}
+        {err && (
+          <div className="mt-2">
+            <ErrorWithHint
+              message={err}
+              toolSlug="vvs-planner"
+              route="/api/tools/vvs-planner/profile-channel"
+              onDismiss={() => setErr(null)}
+            />
+          </div>
+        )}
       </div>
     );
   }
