@@ -59,12 +59,13 @@ export const TOOLS: Tool[] = [
   {
     slug: "premiere-auto-edit",
     name: "프리미어프로 반자동 편집",
-    description: "컷 편집 · 자막 · BGM 자동화",
+    description: "Vrew SRT → 포인트 자막 + 효과음 → PP 자동 반영 (로컬 앱 실행 필요)",
     emoji: "✂️",
-    href: "#",
-    status: "soon",
+    href: "http://localhost:3838",
+    status: "live",
     color: "bg-brandSoft",
     category: "편집",
+    external: true,
   },
 
   // ━━━ 업로드 및 관리 ━━━
