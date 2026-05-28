@@ -25,12 +25,20 @@ export default async function AdminPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-ink">사용자 관리</h1>
-        <p className="text-sm text-mute mt-1">
-          차단 시 즉시 모든 툴 사용이 중단됩니다. 회원전용 권한은 수강생에게만
-          부여하세요.
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">사용자 관리</h1>
+          <p className="text-sm text-mute mt-1">
+            차단 시 즉시 모든 툴 사용이 중단됩니다. 회원전용 권한은
+            수강생에게만 부여하세요.
+          </p>
+        </div>
+        <a
+          href="/admin/errors"
+          className="shrink-0 rounded-lg bg-chip px-3 py-1.5 text-xs font-bold text-sub hover:bg-line"
+        >
+          🆘 에러 모니터링 →
+        </a>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">

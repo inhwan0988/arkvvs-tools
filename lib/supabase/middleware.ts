@@ -13,6 +13,8 @@ const PUBLIC_PATHS = [
   "/api/tools/capcut-helper/jobs",
   "/api/tools/capcut-helper/upload-url",
   "/api/tools/capcut-helper/latest-version",
+  // 글로벌 에러 로그 — 익명 클라이언트 에러도 수집
+  "/api/log-error",
   // 단축 URL redirect 라우트 — 익명 클릭도 받아야 함
   "/r/",
   // QR 코드 — 외부에서 접근 가능해야 (단축 URL과 함께 공유)
