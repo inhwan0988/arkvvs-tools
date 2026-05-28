@@ -440,6 +440,83 @@ export default function ArkClipperPage() {
         </ol>
       </section>
 
+      {/* 문제 해결 — 결과물 안 나올 때 */}
+      <section className="mb-12">
+        <h2 className="text-base font-bold text-ink mb-4">
+          🆘 결과물이 안 나와요
+        </h2>
+        <div className="space-y-3">
+          <TroubleItem
+            num={1}
+            title="API 키 두 개 다 입력했는지 확인"
+            chance="90%"
+          >
+            앱 우상단 설정 (⚙️)에서 <b>Anthropic 키 (sk-ant-로 시작)</b> +{" "}
+            <b>OpenAI 키 (sk-로 시작)</b> 둘 다 입력. 하나라도 비면 처리가 시작
+            안 됩니다.{" "}
+            <a
+              href="https://console.anthropic.com/settings/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand font-bold hover:underline"
+            >
+              Anthropic 발급
+            </a>
+            {" / "}
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand font-bold hover:underline"
+            >
+              OpenAI 발급
+            </a>
+          </TroubleItem>
+
+          <TroubleItem num={2} title="API 키 잔액/권한 확인" chance="5%">
+            키는 맞는데 결제 정보가 없거나 잔액 0이면 401/429 오류. Anthropic{" "}
+            <a
+              href="https://console.anthropic.com/settings/billing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand font-bold hover:underline"
+            >
+              billing
+            </a>
+            {" / "}
+            OpenAI{" "}
+            <a
+              href="https://platform.openai.com/settings/organization/billing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand font-bold hover:underline"
+            >
+              billing
+            </a>
+            에서 결제 카드 등록 + 최소 $5 충전.
+          </TroubleItem>
+
+          <TroubleItem
+            num={3}
+            title="macOS — &ldquo;개발자 확인 불가&rdquo; 경고"
+            chance="3%"
+          >
+            첫 실행 시 차단되면 시스템 설정 → 개인정보 보호 및 보안 → 맨
+            아래로 스크롤 → &ldquo;Ark Clipper&rdquo;{" "}
+            <b>&ldquo;확인 없이 열기&rdquo;</b> 클릭. 또는 터미널에서:
+            <pre className="mt-1.5 px-2 py-1 bg-chip rounded text-[11px] font-mono overflow-x-auto">
+              xattr -dr com.apple.quarantine /Applications/Ark\ Clipper.app
+            </pre>
+          </TroubleItem>
+
+          <TroubleItem num={4} title="앱 로그 보내기 (위 셋 다 해당 X)" chance="2%">
+            앱 우상단 설정 → 디버그 → <b>&ldquo;로그 폴더 열기&rdquo;</b> 클릭
+            → 가장 최근 파일을 joshua@arkstudio.kr로 보내주세요. 보통 5분 안에
+            원인 회신 드립니다.
+          </TroubleItem>
+        </div>
+      </section>
+
       {/* 개인정보 */}
       <section className="mb-12">
         <div className="rounded-xl2 border border-success/30 bg-successSoft/40 p-5">
@@ -452,6 +529,37 @@ export default function ArkClipperPage() {
           </ul>
         </div>
       </section>
+    </div>
+  );
+}
+
+function TroubleItem({
+  num,
+  title,
+  chance,
+  children,
+}: {
+  num: number;
+  title: string;
+  chance: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl2 border border-line bg-surface p-4 shadow-card">
+      <div className="flex items-start gap-3">
+        <span className="shrink-0 w-6 h-6 rounded-full bg-brandSoft text-brand text-[12px] font-bold flex items-center justify-center">
+          {num}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <p className="text-[14px] font-bold text-ink">{title}</p>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-chip text-mute">
+              가능성 {chance}
+            </span>
+          </div>
+          <div className="text-[13px] text-sub leading-relaxed">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
