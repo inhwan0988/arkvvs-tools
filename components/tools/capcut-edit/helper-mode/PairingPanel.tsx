@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 
 export default function PairingPanel({ onPaired }: { onPaired: () => void }) {
   const [code, setCode] = useState("");
@@ -69,7 +70,12 @@ export default function PairingPanel({ onPaired }: { onPaired: () => void }) {
           {loading ? "페어링 중..." : "페어링하기"}
         </button>
         {err && (
-          <p className="text-[12px] font-semibold text-danger">⚠️ {err}</p>
+          <ErrorWithHint
+            message={err}
+            toolSlug="capcut-helper"
+            route="/api/tools/capcut-helper/pair"
+            onDismiss={() => setErr(null)}
+          />
         )}
       </div>
 

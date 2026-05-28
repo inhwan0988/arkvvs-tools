@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import ScriptDisplay from "./ScriptDisplay";
 
@@ -111,8 +112,13 @@ export default function Step4ScriptGenerate() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-          {error}
+        <div className="mb-4">
+          <ErrorWithHint
+            message={error}
+            toolSlug="vvs-planner"
+            route="/api/tools/vvs-planner/script"
+            onDismiss={() => setError(null)}
+          />
         </div>
       )}
 

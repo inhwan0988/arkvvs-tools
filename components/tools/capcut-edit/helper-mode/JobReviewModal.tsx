@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import type { CapcutJob } from "@/lib/tools/capcut-helper/types";
 import type {
   PointSubtitle,
@@ -201,8 +202,17 @@ export default function JobReviewModal({
         </div>
 
         {/* Footer */}
+        {err && (
+          <div className="px-5 pt-3">
+            <ErrorWithHint
+              message={err}
+              toolSlug="capcut-helper"
+              route="/api/tools/capcut-helper/apply"
+              onDismiss={() => setErr(null)}
+            />
+          </div>
+        )}
         <div className="px-5 py-4 border-t border-line flex items-center justify-between gap-3 flex-wrap">
-          {err && <p className="text-[12px] text-danger font-semibold">⚠️ {err}</p>}
           <button onClick={onClose} className="text-sm text-sub hover:text-ink ml-auto">
             취소
           </button>

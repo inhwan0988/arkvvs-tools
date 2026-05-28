@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import {
   PLATFORM_META,
   SPREAD_PLATFORMS,
@@ -266,9 +267,12 @@ export default function SpreadPage() {
           </div>
         )}
         {error && (
-          <div className="rounded-xl2 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-            ⚠️ {error}
-          </div>
+          <ErrorWithHint
+            message={error}
+            toolSlug="spread"
+            route="/api/tools/spread/post"
+            onDismiss={() => setError(null)}
+          />
         )}
 
         {/* 연결된 계정 */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { rankBest, rankWorst, getWeekStart, isWithinWeek } from "@/lib/tools/sns-tracker/aggregator";
 import { PLATFORM_META, type SnsContentStats } from "@/lib/tools/sns-tracker/types";
 
@@ -97,9 +98,12 @@ export default function WeeklyAnalysis({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-danger/30 bg-dangerSoft px-3 py-2 text-sm font-semibold text-danger">
-          ⚠️ {error}
-        </div>
+        <ErrorWithHint
+          message={error}
+          toolSlug="sns-tracker"
+          route="/api/tools/sns-tracker/weekly-analyze"
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {analysis && (
