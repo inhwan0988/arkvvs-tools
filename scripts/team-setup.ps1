@@ -19,10 +19,10 @@ Write-Host "[1/5] Installing GitHub CLI + Node.js..." -ForegroundColor Yellow
 
 function Install-IfMissing($id, $name) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
-        Write-Host "  -> Installing $name..."
+        Write-Host ("  -> Installing {0}..." -f $name)
         winget install --id $id -e --silent --accept-source-agreements --accept-package-agreements 2>&1 | Out-Null
     } else {
-        Write-Host "  OK $name already installed"
+        Write-Host ("  OK {0} already installed" -f $name)
     }
 }
 
@@ -49,14 +49,17 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host ""
 Write-Host "[3/5] Cloning arkvvs-tools repo..." -ForegroundColor Yellow
 
-$REPO_DIR = "$HOMErkvvs-tools"
-if (Test-Path $REPO_DIR) {
+# Use Join-Path to avoid PowerShell escape-sequence issues (e.g.  being interpreted)
+$REPO_DIR = Join-Path -Path $HOME -ChildPath "arkvvs-tools"
+Write-Host ("  -> Repo path: {0}" -f $REPO_DIR)
+
+if (Test-Path -Path $REPO_DIR) {
     Write-Host "  -> Already exists. Pulling latest..."
-    Set-Location $REPO_DIR
+    Set-Location -Path $REPO_DIR
     git pull origin main
 } else {
     gh repo clone inhwan0988/arkvvs-tools $REPO_DIR
-    Set-Location $REPO_DIR
+    Set-Location -Path $REPO_DIR
 }
 
 # ---------- Step 4: npm install ----------
@@ -75,11 +78,13 @@ if ([string]::IsNullOrEmpty($ENV_URL)) {
     $ENV_URL = Read-Host "  URL"
 }
 
+$ENV_TARGET = Join-Path -Path $REPO_DIR -ChildPath ".env.local"
+
 try {
-    Invoke-WebRequest -Uri $ENV_URL -OutFile "$REPO_DIR\.env.local" -UseBasicParsing
+    Invoke-WebRequest -Uri $ENV_URL -OutFile $ENV_TARGET -UseBasicParsing
     Write-Host "  OK .env.local downloaded"
 } catch {
-    Write-Host "  ERROR: Failed - $_" -ForegroundColor Red
+    Write-Host ("  ERROR: Failed - {0}" -f $_) -ForegroundColor Red
     Write-Host "     Ask joshua for the URL again"
 }
 
@@ -91,7 +96,7 @@ Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Green
 Write-Host ""
 Write-Host "  1) Open a NEW PowerShell window" -ForegroundColor White
-Write-Host "  2) cd ~/arkvvs-tools" -ForegroundColor White
+Write-Host ("  2) cd {0}" -f $REPO_DIR) -ForegroundColor White
 Write-Host "  3) claude  (start Claude Code)" -ForegroundColor White
 Write-Host ""
 Write-Host "Web app test:" -ForegroundColor Green
