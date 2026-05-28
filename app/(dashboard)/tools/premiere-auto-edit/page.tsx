@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const DOWNLOAD_URL = "/downloads/ArkPointsProSetup.exe";
-const LOCAL_APP_URL = "http://localhost:3838";
+const APP_VERSION = "1.0.0";
 
 export default function PremiereAutoEditPage() {
   return (
@@ -26,96 +26,48 @@ export default function PremiereAutoEditPage() {
             </p>
           </div>
         </div>
+        <span className="inline-block px-2.5 py-0.5 rounded-full bg-chip text-sub text-[11px] font-semibold">
+          v{APP_VERSION} · Windows 데스크탑 앱
+        </span>
       </header>
 
-      {/* 프로그램 열기 (이미 설치한 사람) */}
+      {/* 다운로드 + 설치 */}
       <section className="mb-10">
         <div className="rounded-xl3 border-2 border-brand bg-brandSoft/40 p-6 shadow-card">
-          <h2 className="text-lg font-bold text-ink mb-1">🚀 프로그램 열기</h2>
-          <p className="text-sm text-sub mb-4 leading-relaxed">
-            이미 설치하셨다면, <b>프로그램을 먼저 실행</b>한 뒤 아래 버튼을
-            누르세요. (바탕화면 &ldquo;Ark Points Pro&rdquo; 아이콘 더블클릭)
-          </p>
-          <a
-            href={LOCAL_APP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl2 bg-brand text-white font-bold text-base hover:opacity-90 transition shadow-card"
-          >
-            🚀 Ark Points Pro 열기 →
-          </a>
-          <p className="text-[12px] text-mute mt-3">
-            ⚠️ &ldquo;연결할 수 없음&rdquo; 에러가 뜨면 → 프로그램이 안 켜진
-            상태예요. 바탕화면 아이콘을 먼저 더블클릭한 뒤 다시 시도하세요.
-          </p>
-        </div>
-      </section>
-
-      {/* 처음이신가요? (다운로드 + 설치) */}
-      <section className="mb-12">
-        <div className="rounded-xl3 border border-line bg-surface p-6 shadow-card">
-          <h2 className="text-lg font-bold text-ink mb-1">
-            📦 처음이신가요? 설치하기
-          </h2>
+          <h2 className="text-lg font-bold text-ink mb-1">📦 다운로드 &amp; 설치</h2>
           <p className="text-sm text-sub mb-5 leading-relaxed">
-            아래 설치파일을 받아 한 번만 설치하면 됩니다. 설치 후엔 바탕화면
-            아이콘으로 바로 실행할 수 있어요.
+            설치파일 하나로 끝! Node.js, Git 등 별도 설치 없이 바로 사용할 수
+            있어요.
           </p>
 
           <a
             href={DOWNLOAD_URL}
             download
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl2 border-2 border-brand text-brand font-bold text-base hover:bg-brandSoft transition mb-6"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl2 bg-brand text-white font-bold text-base hover:opacity-90 transition shadow-card mb-6"
           >
-            ⬇️ 설치파일 다운로드 (Windows · 약 2MB)
+            ⬇️ Ark Points Pro 다운로드 (Windows · 약 79MB)
           </a>
 
           <h3 className="text-sm font-bold text-ink mb-3">설치 순서</h3>
           <ol className="space-y-3 text-sm text-sub">
             <Step n={1}>
-              <b>미리 필요한 것</b> (없으면 설치 중 안내가 떠요):
-              <span className="block text-xs text-mute mt-1">
-                · Node.js →{" "}
-                <a
-                  href="https://nodejs.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-brand underline underline-offset-2"
-                >
-                  nodejs.org
-                </a>{" "}
-                (LTS 버전)
-                <br />· Git →{" "}
-                <a
-                  href="https://git-scm.com/download/win"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-brand underline underline-offset-2"
-                >
-                  git-scm.com
-                </a>
-              </span>
+              위 버튼으로 <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">ArkPointsProSetup.exe</code> 다운로드
             </Step>
             <Step n={2}>
-              위 <b>설치파일 다운로드</b> → <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">ArkPointsProSetup.exe</code> 더블클릭
+              다운받은 파일 더블클릭 → 설치
               <span className="block text-xs text-mute mt-1">
                 &ldquo;알 수 없는 게시자&rdquo; 경고 뜨면 → &ldquo;추가 정보 →
                 실행&rdquo;
               </span>
             </Step>
             <Step n={3}>
-              설치 중 <b>Github 로그인 창</b>이 뜨면 → 본인 Github 계정으로
-              로그인 (저장소 접근 권한 필요 — 관리자에게 초대 요청)
-            </Step>
-            <Step n={4}>
               <b>Premiere Pro 한 번 재시작</b> (CEP 플러그인 인식용)
             </Step>
-            <Step n={5}>
-              바탕화면 <b>&ldquo;Ark Points Pro&rdquo;</b> 아이콘 더블클릭 →
-              위 <b>&ldquo;프로그램 열기&rdquo;</b> 버튼으로 접속
+            <Step n={4}>
+              바탕화면 또는 시작 메뉴에서 <b>&ldquo;Ark Points Pro&rdquo;</b> 실행
             </Step>
-            <Step n={6}>
-              사이트에서 <b>🤖 AI 설정</b> → Claude 선택 → API 키 입력
+            <Step n={5}>
+              앱 내 <b>🤖 AI 설정</b> → Claude 또는 Gemini 선택 → API 키 입력
               <span className="block text-xs text-mute mt-1">
                 키는 관리자에게 문의
               </span>
@@ -143,10 +95,10 @@ export default function PremiereAutoEditPage() {
           <ul className="space-y-2.5 text-sm text-sub">
             <li>
               <span className="font-bold text-ink">OS:</span> Windows 10/11
+              (64bit)
             </li>
             <li>
-              <span className="font-bold text-ink">필수:</span> Premiere Pro,
-              Node.js, Git
+              <span className="font-bold text-ink">필수:</span> Premiere Pro
             </li>
             <li>
               <span className="font-bold text-ink">AI:</span> Claude API 키

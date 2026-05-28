@@ -1,0 +1,30 @@
+name: Auto-update PR branches
+
+# main에 새 commit이 들어가면, open PR들을 자동으로 main 기준으로 update.
+# branch protection이 "Require branches to be up to date" 켜져 있어서 필요.
+# 직원이 본인 PC에서 git pull 안 해도 GitHub 쪽은 자동 sync.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: open PR들 update-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # draft 아닌 open PR 모두 update — conflict 있으면 skip (직원이 직접 해결)
+          gh pr list --repo "$REPO" --state open --json number,isDraft \
+            --jq '.[] | select(.isDraft==false) | .number' \
+            | while read pr; do
+                echo "→ updating PR #$pr"
+                gh pr update-branch "$pr" --repo "$REPO" || echo "  (skipped — conflict or already up-to-date)"
+              done

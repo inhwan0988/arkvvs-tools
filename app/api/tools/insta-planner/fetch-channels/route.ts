@@ -83,6 +83,26 @@ export async function POST(req: NextRequest) {
     // 종합 점수 순 정렬
     filtered.sort((a, b) => b.score - a.score);
 
+    // 결과 1건 이상이면 검색 기록 저장 — (user_id, handles) unique index로 upsert
+    if (filtered.length > 0) {
+      const handlesKey = [...usernames].sort();
+      const filters = {
+        minIvs: body.minIvs ?? 0,
+        minFollowers: body.minFollowers ?? 0,
+        excludeKeywords: body.excludeKeywords ?? "",
+      };
+      await supabase.from("insta_planner_searches").upsert(
+        {
+          user_id: user.id,
+          handles: handlesKey,
+          filters,
+          result_count: filtered.length,
+          last_used_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,handles" },
+      );
+    }
+
     return NextResponse.json({
       reels: filtered.slice(0, 50),
       meta: {
