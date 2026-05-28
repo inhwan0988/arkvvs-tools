@@ -148,6 +148,40 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Threads — graph.threads.net로 /me 조회 (long-lived user token 사용)
+    try {
+      const tUrl = new URL("https://graph.threads.net/v1.0/me");
+      tUrl.searchParams.set("fields", "id,username,name");
+      tUrl.searchParams.set("access_token", userToken);
+      const tRes = await fetch(tUrl.toString());
+      if (tRes.ok) {
+        const tData = (await tRes.json()) as {
+          id?: string;
+          username?: string;
+          name?: string;
+        };
+        if (tData.id) {
+          await supabase.from("social_connections").upsert(
+            {
+              user_id: user.id,
+              platform: "threads",
+              external_id: tData.id,
+              external_username: tData.username ?? null,
+              external_name: tData.name ?? null,
+              access_token: userToken,
+              token_expires_at: userExpiresAt.toISOString(),
+              enabled: true,
+              last_refreshed_at: new Date().toISOString(),
+              refresh_error: null,
+            },
+            { onConflict: "user_id,platform,external_id" },
+          );
+        }
+      }
+    } catch {
+      // Threads use case 권한 없으면 silent skip
+    }
+
     const res = NextResponse.redirect(
       new URL("/tools/spread?connected=1", req.url),
     );

@@ -29,7 +29,109 @@ export default function SpreadPage() {
   const [trackingDestination, setTrackingDestination] = useState("");
   const [shortUrl, setShortUrl] = useState<string | null>(null);
 
+  // AI 캡션
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [perPlatformCaption, setPerPlatformCaption] = useState<Record<string, string>>({});
+  const [claudeKey, setClaudeKey] = useState("");
+
+  // 예약
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [evergreen, setEvergreen] = useState(false);
+  const [category, setCategory] = useState("");
+
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const k = localStorage.getItem("apiKey_claude") || "";
+    if (k) setClaudeKey(k);
+  }, []);
+  useEffect(() => {
+    if (claudeKey) localStorage.setItem("apiKey_claude", claudeKey);
+  }, [claudeKey]);
+
+  async function generateAi() {
+    if (!aiTopic.trim()) {
+      setError("주제를 입력해주세요");
+      return;
+    }
+    if (selected.size === 0) {
+      setError("플랫폼 1개 이상 선택");
+      return;
+    }
+    if (!claudeKey.startsWith("sk-ant-")) {
+      setError("Claude API 키 필요 (sk-ant-...)");
+      return;
+    }
+    setAiLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/tools/spread/ai-caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: aiTopic,
+          platforms: [...selected],
+          anthropicApiKey: claudeKey,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? "AI 생성 실패");
+      setPerPlatformCaption(d.captions);
+      const first = Object.values(d.captions)[0] as string;
+      if (first) setCaption(first);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "오류");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function schedule() {
+    if (!scheduledAt) {
+      setError("예약 시각 선택");
+      return;
+    }
+    if (selected.size === 0) {
+      setError("플랫폼 1개 이상 선택");
+      return;
+    }
+    setPosting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/tools/spread/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caption,
+          variants: variants ?? undefined,
+          targetPlatforms: [...selected],
+          scheduledAt: new Date(scheduledAt).toISOString(),
+          perPlatformCaption:
+            Object.keys(perPlatformCaption).length > 0 ? perPlatformCaption : undefined,
+          trackingDestination:
+            enableTracking && trackingDestination ? trackingDestination : undefined,
+          category: category || undefined,
+          evergreen,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error ?? "예약 실패");
+      setInfo(
+        `✓ ${new Date(scheduledAt).toLocaleString("ko-KR")}에 예약됨${evergreen ? " (에버그린: 7일마다 자동 재게시)" : ""}`,
+      );
+      setCaption("");
+      setVariants(null);
+      setScheduledAt("");
+      setCategory("");
+      setEvergreen(false);
+      setPerPlatformCaption({});
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "오류");
+    } finally {
+      setPosting(false);
+    }
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -361,6 +463,105 @@ export default function SpreadPage() {
             </div>
           </div>
 
+          {/* AI 캡션 생성 */}
+          <details className="mt-4 rounded-xl bg-premiumSoft/30 overflow-hidden">
+            <summary className="px-3 py-2 text-[12px] font-bold text-premium cursor-pointer hover:bg-premiumSoft/50">
+              ✨ AI 캡션 생성 (플랫폼별 자동 변환)
+            </summary>
+            <div className="p-3 space-y-2">
+              <input
+                type="text"
+                value={aiTopic}
+                onChange={(e) => setAiTopic(e.target.value)}
+                placeholder="주제 (예: 새 책 출간 소식, 신상품 런칭, 이벤트 안내)"
+                className="w-full bg-white rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-premium/30"
+              />
+              {!claudeKey && (
+                <input
+                  type="password"
+                  value={claudeKey}
+                  onChange={(e) => setClaudeKey(e.target.value)}
+                  placeholder="Claude API 키 (sk-ant-...)"
+                  className="w-full bg-white rounded-lg px-3 py-2 text-[12px] text-ink font-mono"
+                />
+              )}
+              <button
+                onClick={generateAi}
+                disabled={aiLoading || !aiTopic.trim() || selected.size === 0}
+                className="w-full rounded-lg bg-premium text-white text-sm font-bold py-2 hover:bg-premiumHover disabled:opacity-50"
+              >
+                {aiLoading
+                  ? "생성 중..."
+                  : `✨ ${selected.size}개 플랫폼 캡션 자동 생성`}
+              </button>
+              {Object.keys(perPlatformCaption).length > 0 && (
+                <div className="space-y-1.5 mt-2">
+                  {Object.entries(perPlatformCaption).map(([p, c]) => {
+                    const meta = PLATFORM_META[p as SpreadPlatform];
+                    return (
+                      <div key={p} className="rounded-lg bg-white p-2">
+                        <p className="text-[10px] font-bold text-mute uppercase mb-1">
+                          {meta?.emoji} {meta?.label} · {c.length}자
+                        </p>
+                        <p className="text-[12px] text-ink whitespace-pre-wrap">{c}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </details>
+
+          {/* 예약 게시 */}
+          <details className="mt-3 rounded-xl bg-warnSoft/30 overflow-hidden">
+            <summary className="px-3 py-2 text-[12px] font-bold text-warn cursor-pointer hover:bg-warnSoft/50">
+              ⏰ 나중에 예약 + 에버그린 자동 재게시
+            </summary>
+            <div className="p-3 space-y-2">
+              <div>
+                <label className="text-[10px] font-bold text-mute uppercase tracking-wider block mb-1">
+                  예약 시각
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="w-full bg-white rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-warn/30"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-mute uppercase tracking-wider block mb-1">
+                  카테고리 (옵션 — 큐 관리용)
+                </label>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="예: 신상품, 이벤트, 일상"
+                  className="w-full bg-white rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-warn/30"
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={evergreen}
+                  onChange={(e) => setEvergreen(e.target.checked)}
+                  className="w-4 h-4 accent-warn"
+                />
+                <span className="text-[12px] font-bold text-ink">
+                  🔁 에버그린: 7일마다 자동 재게시
+                </span>
+              </label>
+              <button
+                onClick={schedule}
+                disabled={posting || !scheduledAt || selected.size === 0}
+                className="w-full rounded-lg bg-warn text-white text-sm font-bold py-2 hover:opacity-80 disabled:opacity-50"
+              >
+                ⏰ 예약하기
+              </button>
+            </div>
+          </details>
+
           <button
             onClick={post}
             disabled={posting || selected.size === 0}
@@ -368,7 +569,7 @@ export default function SpreadPage() {
           >
             {posting
               ? "게시 중..."
-              : `📢 ${selected.size}개 플랫폼에 동시 게시${variants ? " (자동 비율)" : ""}`}
+              : `📢 ${selected.size}개 플랫폼에 지금 게시${variants ? " (자동 비율)" : ""}`}
           </button>
 
           {/* 결과 */}

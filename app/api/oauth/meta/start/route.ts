@@ -25,6 +25,10 @@ const META_SCOPES = [
   "instagram_basic",
   "instagram_content_publish",
   "instagram_manage_insights",
+  // Threads — Meta App에서 Threads use case 활성화 필요
+  "threads_basic",
+  "threads_content_publish",
+  "threads_manage_insights",
 ].join(",");
 
 export async function GET(req: NextRequest) {

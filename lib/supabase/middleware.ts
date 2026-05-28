@@ -19,6 +19,7 @@ const PUBLIC_PATHS = [
   "/api/tools/sns-tracker/qr/",
   // Vercel cron — Bearer auth로 보호됨
   "/api/tools/sns-tracker/cron/",
+  "/api/tools/spread/cron/",
 ];
 
 export async function updateSession(request: NextRequest) {

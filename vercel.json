@@ -3,6 +3,14 @@
     {
       "path": "/api/tools/sns-tracker/cron/sync-yt",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/tools/spread/cron/post-scheduled",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/tools/spread/cron/refresh-tokens",
+      "schedule": "0 6 * * *"
     }
   ]
 }
