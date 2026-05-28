@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 
 interface YtChannel {
   id: string;
@@ -205,7 +206,14 @@ export default function YoutubeChannels({
       )}
 
       {error && (
-        <p className="text-[11px] text-danger font-semibold mt-2">⚠️ {error}</p>
+        <div className="mt-2">
+          <ErrorWithHint
+            message={error}
+            toolSlug="sns-tracker"
+            route="/api/tools/sns-tracker/yt-channels"
+            onDismiss={() => setError(null)}
+          />
+        </div>
       )}
     </div>
   );

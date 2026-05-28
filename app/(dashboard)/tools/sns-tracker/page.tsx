@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import QuickCreate from "@/components/tools/sns-tracker/QuickCreate";
 import TossSummary from "@/components/tools/sns-tracker/TossSummary";
 import TossLinkList from "@/components/tools/sns-tracker/TossLinkList";
@@ -63,9 +64,12 @@ export default function SnsTrackerPage() {
         </header>
 
         {err && (
-          <div className="rounded-xl2 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-            ⚠️ {err}
-          </div>
+          <ErrorWithHint
+            message={err}
+            toolSlug="sns-tracker"
+            route="/api/tools/sns-tracker/contents"
+            onDismiss={() => setErr(null)}
+          />
         )}
 
         {/* 메인 액션 — 단축 URL 발급 */}

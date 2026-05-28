@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import {
   APPROACH_LABELS,
@@ -161,9 +162,12 @@ export default function Step3Analysis() {
       )}
 
       {error && (
-        <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-          ⚠️ {error}
-        </div>
+        <ErrorWithHint
+          message={error}
+          toolSlug="insta-planner"
+          route="/api/tools/insta-planner/analyze-reel"
+          onDismiss={() => setError(null)}
+        />
       )}
 
       {phase === "ready" && reelAnalysis && (
