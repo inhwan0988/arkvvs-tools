@@ -297,6 +297,132 @@ export default function ArkClipperPage() {
         </div>
       </section>
 
+      {/* 💰 API 사용 비용표 (한화) */}
+      <section className="mb-12">
+        <h2 className="text-base font-bold text-ink mb-2">
+          💰 API 사용 비용 (한화 기준)
+        </h2>
+        <p className="text-[12px] text-mute mb-4">
+          본인 API 키 사용 → Anthropic + OpenAI에서 직접 차감. 환율 1,400원/$ 기준 추정값.
+        </p>
+
+        {/* 영상 길이별 1편 비용 */}
+        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card mb-3">
+          <h3 className="text-sm font-bold text-ink mb-3">
+            영상 1편당 처리 비용
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line text-left">
+                  <th className="py-2 pr-3 text-[11px] font-bold text-mute uppercase tracking-wider">
+                    영상 길이
+                  </th>
+                  <th className="py-2 pr-3 text-[11px] font-bold text-mute uppercase tracking-wider">
+                    Whisper
+                  </th>
+                  <th className="py-2 pr-3 text-[11px] font-bold text-mute uppercase tracking-wider">
+                    Claude
+                  </th>
+                  <th className="py-2 pr-3 text-[11px] font-bold text-mute uppercase tracking-wider text-right">
+                    총 (₩)
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                <tr>
+                  <td className="py-2.5 pr-3 font-semibold text-ink">5분</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.03 (~42원)</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.04 (~56원)</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-brand">
+                    약 100원
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 pr-3 font-semibold text-ink">10분</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.06 (~84원)</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.05 (~70원)</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-brand">
+                    약 150원
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 pr-3 font-semibold text-ink">20분</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.12 (~168원)</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.07 (~98원)</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-brand">
+                    약 270원
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 pr-3 font-semibold text-ink">30분</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.18 (~252원)</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.09 (~126원)</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-brand">
+                    약 380원
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 pr-3 font-semibold text-ink">60분</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.36 (~504원)</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.15 (~210원)</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-brand">
+                    약 720원
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 pr-3 font-semibold text-ink">120분</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.72 (~1,008원)</td>
+                  <td className="py-2.5 pr-3 text-sub">$0.25 (~350원)</td>
+                  <td className="py-2.5 pr-3 text-right font-bold text-brand">
+                    약 1,400원
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 월 사용량별 예상 */}
+        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card mb-3">
+          <h3 className="text-sm font-bold text-ink mb-3">
+            월 사용량별 예상 (평균 15분 영상 기준)
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <CostCard count="5개/월" cost="약 1,000원" />
+            <CostCard count="20개/월" cost="약 4,000원" />
+            <CostCard count="50개/월" cost="약 10,000원" emphasis />
+            <CostCard count="100개/월" cost="약 20,000원" />
+          </div>
+          <p className="text-[11px] text-mute mt-3">
+            ⚠️ Whisper는 음성 길이, Claude는 자막 글자 수에 따라 변동. 위는 한국어 평균치 기준.
+          </p>
+        </div>
+
+        {/* 비교 */}
+        <div className="rounded-xl2 border border-success/30 bg-successSoft/40 p-4">
+          <h3 className="text-sm font-bold text-success mb-2">
+            🆚 다른 서비스 대비
+          </h3>
+          <ul className="space-y-1.5 text-[12px] text-sub">
+            <li>
+              <b className="text-ink">OpusClip</b> 월 ₩50,000 (3시간 영상 한도)
+            </li>
+            <li>
+              <b className="text-ink">Vidnoz / Submagic</b> 월 ₩35,000~70,000
+              (구독)
+            </li>
+            <li>
+              <b className="text-ink text-success">Ark Clipper</b> 사용한 만큼만
+              지불. 영상 100개 (월 25시간)도 약 2만원
+            </li>
+          </ul>
+          <p className="text-[11px] text-mute mt-2 italic">
+            ⚠️ 추정값. 실제 비용은 Anthropic / OpenAI 콘솔에서 확인.
+          </p>
+        </div>
+      </section>
+
       {/* 사용 흐름 */}
       <section className="mb-12">
         <h2 className="text-base font-bold text-ink mb-4">
@@ -417,5 +543,36 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
       </span>
       <span className="flex-1 pt-0.5">{children}</span>
     </li>
+  );
+}
+
+function CostCard({
+  count,
+  cost,
+  emphasis,
+}: {
+  count: string;
+  cost: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl2 p-3 border ${
+        emphasis
+          ? "border-brand bg-brandSoft/40"
+          : "border-line bg-surface"
+      }`}
+    >
+      <p className="text-[10px] font-bold text-mute uppercase tracking-wider mb-1">
+        {count}
+      </p>
+      <p
+        className={`text-base font-bold ${
+          emphasis ? "text-brand" : "text-ink"
+        }`}
+      >
+        {cost}
+      </p>
+    </div>
   );
 }
