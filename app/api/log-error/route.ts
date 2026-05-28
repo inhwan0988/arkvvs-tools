@@ -4,6 +4,18 @@ import { createHash } from "node:crypto";
 
 export const runtime = "nodejs";
 
+// 외부 앱(vvs-youtube-tool, ark-clipper, capcut-helper Electron)에서 cross-origin POST 받기
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 interface ClientErrorBody {
   toolSlug?: string;
   route?: string;
@@ -46,10 +58,16 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as ClientErrorBody;
   } catch {
-    return NextResponse.json({ error: "invalid json" }, { status: 400 });
+    return NextResponse.json(
+      { error: "invalid json" },
+      { status: 400, headers: CORS_HEADERS },
+    );
   }
   if (!body.message || typeof body.message !== "string") {
-    return NextResponse.json({ error: "message 필요" }, { status: 400 });
+    return NextResponse.json(
+      { error: "message 필요" },
+      { status: 400, headers: CORS_HEADERS },
+    );
   }
 
   // rate limit — IP 해시 (raw 저장 X)
@@ -59,7 +77,10 @@ export async function POST(req: NextRequest) {
     "unknown";
   const ipHash = createHash("sha256").update(rawIp).digest("hex").slice(0, 16);
   if (hitLimit(ipHash)) {
-    return NextResponse.json({ ok: true, throttled: true });
+    return NextResponse.json(
+      { ok: true, throttled: true },
+      { headers: CORS_HEADERS },
+    );
   }
 
   const supabase = createClient();
@@ -82,5 +103,5 @@ export async function POST(req: NextRequest) {
     fingerprint: fingerprintOf(body.message, body.route),
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true }, { headers: CORS_HEADERS });
 }

@@ -21,6 +21,7 @@ const api = require('./api');
 const creds = require('./credentials');
 const ff = require('./ffmpeg-ops');
 const draftWriter = require('./capcut-draft-writer');
+const { reportError, setDeviceId } = require('./error-reporter');
 
 const isDev = !app.isPackaged;
 
@@ -156,6 +157,7 @@ async function bootstrapPairing() {
     const result = await api.register(process.platform, dir);
     creds.save({ deviceId: result.deviceId, deviceSecret: result.deviceSecret });
     state.credentials = { deviceId: result.deviceId, deviceSecret: result.deviceSecret };
+    setDeviceId(result.deviceId);
     state.pairingCode = result.pairingCode;
     state.pairingExpiresAt = result.expiresAt;
     setStatus('웹앱에서 페어링 대기 중');
@@ -163,6 +165,7 @@ async function bootstrapPairing() {
   } catch (e) {
     setStatus('페어링 실패: ' + e.message);
     notify('페어링 실패', e.message);
+    reportError(e, { route: 'bootstrapPairing' });
   }
 }
 
@@ -199,6 +202,7 @@ async function checkPaired() {
       await bootstrapPairing();
     } else {
       logLine('[ping] error:', e.message);
+      reportError(e, { route: 'checkPaired/ping', context: { status: e?.status } });
     }
   }
 }
@@ -260,7 +264,10 @@ function startWatcher() {
     }
   });
 
-  watcher.on('error', (e) => logLine('[watch] error:', e.message));
+  watcher.on('error', (e) => {
+    logLine('[watch] error:', e.message);
+    reportError(e, { route: 'watcher', context: { dir } });
+  });
   pushStateToUI();
 }
 
@@ -302,6 +309,7 @@ async function handleDraftMetaChange(metaPath, processedSet) {
     }
   } catch (e) {
     logLine('[meta] handle failed:', e.message);
+    reportError(e, { route: 'handleDraftMetaChange', context: { metaPath } });
   }
 }
 
@@ -401,6 +409,10 @@ async function processNewVideo(videoPath, projectDirOverride) {
     logLine('[video] processing failed:', e.message);
     setStatus('연동 완료 — 캡컷 폴더 감시 중');
     notify('❌ 처리 실패', e.message);
+    reportError(e, {
+      route: 'processNewVideo',
+      context: { videoName, projectId },
+    });
   }
 }
 
@@ -476,6 +488,10 @@ async function handleApplyJob(job) {
     });
     setStatus('연동 완료 — 캡컷 폴더 감시 중');
     notify('❌ 캡컷 프로젝트 수정 실패', e.message);
+    reportError(e, {
+      route: 'handleApplyJob',
+      context: { jobId: job.id, videoName: job.video_name },
+    });
   }
 }
 
@@ -542,6 +558,7 @@ ipcMain.handle('helper:openCapcutFolder', openCapcutFolder);
 ipcMain.handle('helper:unpair', async () => {
   creds.clear();
   state.credentials = null;
+  setDeviceId(null);
   state.paired = false;
   state.pairingCode = null;
   if (watcher) {
@@ -568,6 +585,7 @@ app.whenReady().then(async () => {
   if (!state.credentials) {
     await bootstrapPairing();
   } else {
+    setDeviceId(state.credentials.deviceId);
     setStatus('페어링 상태 확인 중...');
   }
 
