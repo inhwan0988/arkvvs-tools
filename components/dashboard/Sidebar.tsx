@@ -192,6 +192,19 @@ export default function Sidebar({
             )}
           </div>
 
+          {/* 멤버십 안내 — 항상 표시 */}
+          <Link
+            href="/membership"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold transition ${
+              pathname.startsWith("/membership")
+                ? "bg-premiumSoft text-premium"
+                : "text-sub hover:bg-chip"
+            }`}
+          >
+            <span className="text-base">💎</span>
+            <span>멤버십 안내</span>
+          </Link>
+
           {isAdmin && (
             <>
               <div className="mt-6 px-3 mb-2 flex items-center gap-2">
