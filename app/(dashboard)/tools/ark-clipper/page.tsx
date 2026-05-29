@@ -2,7 +2,7 @@ import Link from "next/link";
 
 // GitHub Releases 직접 다운로드 URL — 클릭 시 즉시 다운로드 시작
 // ark-clipper- 레포가 public이라 비로그인 사용자도 받을 수 있음
-const APP_VERSION = "0.3.6";
+const APP_VERSION = "0.4.1";
 const DOWNLOADS = {
   mac: {
     url: `https://github.com/inhwan0988/ark-clipper-/releases/download/v${APP_VERSION}/Ark-Clipper-${APP_VERSION}-arm64.dmg`,
