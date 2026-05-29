@@ -166,143 +166,69 @@ export default function ArkClipperPage() {
         </p>
       </section>
 
-      {/* 처음 설치 */}
+      {/* 자주 묻는 질문 (FAQ) */}
       <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">
-          📦 처음 설치 (한 번만)
-        </h2>
-        <ol className="space-y-3 text-sm text-sub">
-          <Step n={1}>
-            위 <b>다운로드</b> 클릭 → 본인 OS에 맞는 인스톨러 받기 (약 275MB)
-          </Step>
-          <Step n={2}>
-            <b>Mac:</b> .dmg 더블클릭 → 창 안의 Ark Clipper 아이콘을{" "}
-            <b>Applications 폴더로 드래그</b>
-            <span className="block text-xs text-mute mt-1">
-              Windows: .exe 더블클릭 → 인스톨러 따라서 설치
-            </span>
-          </Step>
-          <Step n={3}>
-            <b>Mac:</b> Applications에서 Ark Clipper{" "}
-            <b>우클릭 → &ldquo;열기&rdquo;</b> (첫 실행만, 그 뒤로는 일반
-            실행)
-            <span className="block text-xs text-mute mt-1">
-              Windows: SmartScreen 경고 뜨면 &ldquo;추가 정보 → 실행&rdquo;
-              클릭
-            </span>
-          </Step>
-          <Step n={4}>
-            앱 창이 뜨면 우상단에 API 키 두 개 입력 → 저장
-            <span className="block text-xs text-mute mt-1">
-              Anthropic 키 (sk-ant-...) + OpenAI 키 (sk-...) 둘 다 필요
-            </span>
-          </Step>
-          <Step n={5}>
-            YouTube URL 붙여넣기 → &ldquo;쇼츠 만들기&rdquo; 클릭 → 준비 완료
-          </Step>
-        </ol>
-      </section>
+        <h2 className="text-base font-bold text-ink mb-4">❓ 자주 묻는 질문</h2>
+        <div className="space-y-2">
+          <FaqItem question="📦 처음 설치 방법">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-xl2 border border-line bg-bg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🍎</span>
+                  <span className="text-[14px] font-bold text-ink">Mac</span>
+                </div>
+                <ol className="space-y-3 text-[13px] text-sub">
+                  <Step n={1}>
+                    본인 칩에 맞는 <b>.dmg</b> 다운로드 (Apple Silicon / Intel)
+                  </Step>
+                  <Step n={2}>
+                    .dmg 더블클릭 → Ark Clipper를{" "}
+                    <b>Applications 폴더로 드래그</b>
+                  </Step>
+                  <Step n={3}>
+                    Applications에서 <b>우클릭 → &ldquo;열기&rdquo;</b> (첫
+                    실행만)
+                  </Step>
+                </ol>
+              </div>
 
-      {/* 시스템 요구사항 */}
-      <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">⚙️ 시스템 요구사항</h2>
-        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
-          <ul className="space-y-2.5 text-sm text-sub">
-            <li>
-              <span className="font-bold text-ink">OS:</span> Mac (Apple Silicon
-              권장) 또는 Windows 10/11 64bit
-            </li>
-            <li>
-              <span className="font-bold text-ink">메모리:</span> 8GB 이상 권장
-            </li>
-            <li>
-              <span className="font-bold text-ink">디스크:</span> 10GB 이상
-              여유공간 (Whisper 모델 + 영상 처리용)
-            </li>
-            <li>
-              <span className="font-bold text-ink">GPU:</span>{" "}
-              <span>NVIDIA GPU(Win) 또는 Apple Silicon(Mac) 권장 — 없으면 음성 인식이 느림</span>
-            </li>
-            <li>
-              <span className="font-bold text-ink">인터넷:</span> YouTube 다운로드
-              + Claude API 호출 시
-            </li>
-          </ul>
-        </div>
-      </section>
+              <div className="rounded-xl2 border border-line bg-bg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🪟</span>
+                  <span className="text-[14px] font-bold text-ink">Windows</span>
+                </div>
+                <ol className="space-y-3 text-[13px] text-sub">
+                  <Step n={1}>
+                    <b>.exe</b> 인스톨러 다운로드
+                  </Step>
+                  <Step n={2}>.exe 더블클릭 → 인스톨러 안내 따라 설치</Step>
+                  <Step n={3}>
+                    SmartScreen 경고 시{" "}
+                    <b>&ldquo;추가 정보 → 실행&rdquo;</b>
+                  </Step>
+                </ol>
+              </div>
+            </div>
 
-      {/* API 키 발급 */}
-      <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">
-          🔑 API 키 발급 (1회, 두 개 필요)
-        </h2>
-        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card mb-3">
-          <p className="text-sm font-bold text-ink mb-1">
-            1️⃣ Anthropic 키 (Claude AI 분석용)
-          </p>
-          <ol className="space-y-2 text-sm text-sub mt-3">
-            <Step n={1}>
-              <a
-                href="https://console.anthropic.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-brand underline underline-offset-2"
-              >
-                console.anthropic.com
-              </a>{" "}
-              가입 + 결제 카드 등록 + $5~$10 충전
-            </Step>
-            <Step n={2}>
-              <b>Settings → API Keys → Create Key</b> →{" "}
-              <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">
-                sk-ant-api03-...
-              </code>{" "}
-              복사
-            </Step>
-            <Step n={3}>앱 실행 후 우상단 첫 번째 칸에 붙여넣기</Step>
-          </ol>
-          <p className="text-xs text-mute mt-3">
-            영상 1개당 약 $0.05~$0.20 (Claude 분석 비용)
-          </p>
-        </div>
+            <div className="mt-3 rounded-xl2 border border-brand/20 bg-brandSoft/30 p-4">
+              <p className="text-[13px] font-bold text-brand mb-3">
+                ✅ 설치 후 (Mac · Windows 공통)
+              </p>
+              <ol className="space-y-3 text-[13px] text-sub">
+                <Step n={4}>
+                  앱 우상단에 <b>Anthropic 키</b>(sk-ant-…) +{" "}
+                  <b>OpenAI 키</b>(sk-…) 둘 다 입력 → 저장
+                </Step>
+                <Step n={5}>
+                  YouTube URL 붙여넣기 → <b>&ldquo;쇼츠 만들기&rdquo;</b> → 준비
+                  완료!
+                </Step>
+              </ol>
+            </div>
+          </FaqItem>
 
-        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
-          <p className="text-sm font-bold text-ink mb-1">
-            2️⃣ OpenAI 키 (Whisper 음성 인식용)
-          </p>
-          <ol className="space-y-2 text-sm text-sub mt-3">
-            <Step n={1}>
-              <a
-                href="https://platform.openai.com/api-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-brand underline underline-offset-2"
-              >
-                platform.openai.com/api-keys
-              </a>{" "}
-              접속 (구글 계정 가능) + 카드 등록 + $5 충전
-            </Step>
-            <Step n={2}>
-              <b>Create new secret key</b> →{" "}
-              <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">
-                sk-...
-              </code>{" "}
-              복사
-            </Step>
-            <Step n={3}>앱 우상단 두 번째 칸에 붙여넣기</Step>
-          </ol>
-          <p className="text-xs text-mute mt-3">
-            영상 1분당 약 $0.006 (Whisper 음성 인식 비용)
-          </p>
-        </div>
-      </section>
-
-      {/* 💰 API 사용 비용표 (한화) */}
-      <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-2">
-          💰 API 사용 비용 (한화 기준)
-        </h2>
-        <p className="text-[12px] text-mute mb-4">
+          <FaqItem question="💰 API 사용 비용은 얼마인가요?">
+            <p className="text-[12px] text-mute mb-4">
           본인 API 키 사용 → Anthropic + OpenAI에서 직접 차감. 환율 1,400원/$ 기준 추정값.
         </p>
 
@@ -420,32 +346,44 @@ export default function ArkClipperPage() {
           <p className="text-[11px] text-mute mt-2 italic">
             ⚠️ 추정값. 실제 비용은 Anthropic / OpenAI 콘솔에서 확인.
           </p>
-        </div>
-      </section>
+            </div>
+          </FaqItem>
 
-      {/* 사용 흐름 */}
-      <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">
-          ▶️ 매번 사용할 때
-        </h2>
-        <ol className="space-y-2.5 text-sm text-sub">
-          <Step n={1}>
-            <b>Ark Clipper</b> 앱 실행 (Mac: Applications · Windows: 시작
-            메뉴)
-          </Step>
-          <Step n={2}>YouTube URL 붙여넣기 → &ldquo;쇼츠 만들기&rdquo;</Step>
-          <Step n={3}>자동 처리 (다운로드 → 음성 인식 → AI 분석, 1~5분)</Step>
-          <Step n={4}>AI 추천 후킹 5~6개 검토 → 시간/제목/디자인 조정</Step>
-          <Step n={5}>클립 자동 생성 → MP4 개별 또는 ZIP 전체 다운로드</Step>
-        </ol>
-      </section>
+          <FaqItem question="🔒 개인정보는 안전한가요?">
+            <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
+            <li>• API 키는 본인 컴퓨터에만 저장 (서버 X, 외부 공유 X)</li>
+            <li>• 영상/자막/클립 파일은 본인 PC에 저장 (외부 업로드 없음)</li>
+            <li>• Whisper API에는 음성 데이터, Claude API에는 전사 텍스트만 전송</li>
+            <li>• 비용은 본인 Anthropic / OpenAI 계정에서 직접 차감</li>
+          </ul>
+          </FaqItem>
 
-      {/* 문제 해결 — 결과물 안 나올 때 */}
-      <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">
-          🆘 결과물이 안 나와요
-        </h2>
-        <div className="space-y-3">
+          <FaqItem question="⚙️ 시스템 요구사항은 어떻게 되나요?">
+            <ul className="space-y-2.5 text-sm text-sub">
+            <li>
+              <span className="font-bold text-ink">OS:</span> Mac (Apple Silicon
+              권장) 또는 Windows 10/11 64bit
+            </li>
+            <li>
+              <span className="font-bold text-ink">메모리:</span> 8GB 이상 권장
+            </li>
+            <li>
+              <span className="font-bold text-ink">디스크:</span> 10GB 이상
+              여유공간 (Whisper 모델 + 영상 처리용)
+            </li>
+            <li>
+              <span className="font-bold text-ink">GPU:</span>{" "}
+              <span>NVIDIA GPU(Win) 또는 Apple Silicon(Mac) 권장 — 없으면 음성 인식이 느림</span>
+            </li>
+            <li>
+              <span className="font-bold text-ink">인터넷:</span> YouTube 다운로드
+              + Claude API 호출 시
+            </li>
+          </ul>
+          </FaqItem>
+
+          <FaqItem question="🆘 결과물이 안 나와요">
+            <div className="space-y-3">
           <TroubleItem
             num={1}
             title="API 키 두 개 다 입력했는지 확인"
@@ -514,22 +452,37 @@ export default function ArkClipperPage() {
             → 가장 최근 파일을 joshua@arkstudio.kr로 보내주세요. 보통 5분 안에
             원인 회신 드립니다.
           </TroubleItem>
-        </div>
-      </section>
-
-      {/* 개인정보 */}
-      <section className="mb-12">
-        <div className="rounded-xl2 border border-success/30 bg-successSoft/40 p-5">
-          <h3 className="text-sm font-bold text-success mb-2">🔒 개인정보 보호</h3>
-          <ul className="space-y-1 text-[13px] text-sub leading-relaxed">
-            <li>• API 키는 본인 컴퓨터에만 저장 (서버 X, 외부 공유 X)</li>
-            <li>• 영상/자막/클립 파일은 본인 PC에 저장 (외부 업로드 없음)</li>
-            <li>• Whisper API에는 음성 데이터, Claude API에는 전사 텍스트만 전송</li>
-            <li>• 비용은 본인 Anthropic / OpenAI 계정에서 직접 차감</li>
-          </ul>
+            </div>
+          </FaqItem>
         </div>
       </section>
     </div>
+  );
+}
+
+function FaqItem({
+  question,
+  children,
+}: {
+  question: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group rounded-xl2 border border-line bg-surface shadow-card">
+      <summary className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+        <span className="text-sm font-bold text-ink">{question}</span>
+        <svg
+          className="w-4 h-4 text-mute shrink-0 transition-transform group-open:rotate-180"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.5}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </summary>
+      <div className="px-5 pb-5 pt-1">{children}</div>
+    </details>
   );
 }
 
