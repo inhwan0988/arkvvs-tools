@@ -52,6 +52,32 @@ export default function ArkClipperPage() {
         </div>
       </header>
 
+      {/* 핵심 기능 */}
+      <section className="mb-12">
+        <h2 className="text-base font-bold text-ink mb-4">✨ 핵심 기능</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Feature emoji="🤖" title="AI 후킹 분석">
+            Claude AI가 영상에서 가장 바이럴 가능성 높은 5-6개 구간을 자동
+            추출
+          </Feature>
+          <Feature emoji="🎙️" title="한국어 음성 인식">
+            Whisper large-v3로 단어별 타임스탬프 정확하게 추출
+          </Feature>
+          <Feature emoji="📱" title="9:16 자동 변환">
+            세로형 쇼츠로 자동 크롭 + 레터박스 옵션
+          </Feature>
+          <Feature emoji="🎨" title="디자인 커스텀">
+            폰트/색상/위치/외곽선/배경 자유롭게 조정
+          </Feature>
+          <Feature emoji="✂️" title="타임라인 에디터">
+            영상 보면서 시작/끝 시간 정밀 조정
+          </Feature>
+          <Feature emoji="📥" title="MP4 / ZIP 다운로드">
+            개별 또는 전체 한 번에 받기
+          </Feature>
+        </div>
+      </section>
+
       {/* 다운로드 섹션 */}
       <section className="mb-12">
         <div className="flex items-center justify-between mb-4">
@@ -175,32 +201,6 @@ export default function ArkClipperPage() {
             YouTube URL 붙여넣기 → &ldquo;쇼츠 만들기&rdquo; 클릭 → 준비 완료
           </Step>
         </ol>
-      </section>
-
-      {/* 핵심 기능 */}
-      <section className="mb-12">
-        <h2 className="text-base font-bold text-ink mb-4">✨ 핵심 기능</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Feature emoji="🤖" title="AI 후킹 분석">
-            Claude AI가 영상에서 가장 바이럴 가능성 높은 5-6개 구간을 자동
-            추출
-          </Feature>
-          <Feature emoji="🎙️" title="한국어 음성 인식">
-            Whisper large-v3로 단어별 타임스탬프 정확하게 추출
-          </Feature>
-          <Feature emoji="📱" title="9:16 자동 변환">
-            세로형 쇼츠로 자동 크롭 + 레터박스 옵션
-          </Feature>
-          <Feature emoji="🎨" title="디자인 커스텀">
-            폰트/색상/위치/외곽선/배경 자유롭게 조정
-          </Feature>
-          <Feature emoji="✂️" title="타임라인 에디터">
-            영상 보면서 시작/끝 시간 정밀 조정
-          </Feature>
-          <Feature emoji="📥" title="MP4 / ZIP 다운로드">
-            개별 또는 전체 한 번에 받기
-          </Feature>
-        </div>
       </section>
 
       {/* 시스템 요구사항 */}
