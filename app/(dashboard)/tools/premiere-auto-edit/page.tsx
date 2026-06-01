@@ -1,17 +1,23 @@
 import Link from "next/link";
 
-const APP_VERSION = "1.1.0";
+// 표시용 라벨(배지)에만 쓰임. 다운로드 링크는 버전과 무관하게 항상 최신을 가리킴.
+const APP_VERSION = "1.1.2";
+
+// GitHub releases/latest/download/ 는 항상 최신 릴리스의 에셋으로 리다이렉트됨.
+// 파일명에 버전이 없는 고정 이름이라 새 버전이 나와도 링크를 바꿀 필요가 없음.
+const RELEASE_BASE =
+  "https://github.com/hanna0099/Ark-Points-Pro/releases/latest/download";
 const DOWNLOADS = {
   mac: {
-    url: `https://github.com/hanna0099/Ark-Points-Pro/releases/download/v${APP_VERSION}/Ark.Points.Pro-Setup-${APP_VERSION}-arm64.dmg`,
+    url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-arm64.dmg`,
     available: true,
   },
   macIntel: {
-    url: `https://github.com/hanna0099/Ark-Points-Pro/releases/download/v${APP_VERSION}/Ark.Points.Pro-Setup-${APP_VERSION}-x64.dmg`,
+    url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-x64.dmg`,
     available: true,
   },
   windows: {
-    url: `https://github.com/hanna0099/Ark-Points-Pro/releases/download/v${APP_VERSION}/Ark.Points.Pro-Setup-${APP_VERSION}-x64.exe`,
+    url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-x64.exe`,
     available: true,
   },
 } as const;
