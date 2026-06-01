@@ -32,13 +32,13 @@ const RULES: Rule[] = [
     },
   },
   {
-    match: /Anthropic API.*키|sk-ant-|anthropicApiKey/i,
+    match: /Anthropic API.*키|sk-ant-|anthropicApiKey|Claude 401|invalid x-api-key|authentication_error/i,
     hint: {
-      title: "Anthropic API 키가 없거나 잘못됐어요",
-      hint: "우상단 설정에서 'sk-ant-'로 시작하는 Anthropic 키를 입력해주세요.",
+      title: "Anthropic API 키가 잘못됐어요",
+      hint: "우상단 설정에서 'sk-ant-'로 시작하는 Anthropic 키를 다시 확인해주세요. 키가 만료됐거나 revoke됐을 수 있습니다.",
       actions: [
         {
-          label: "Anthropic 키 발급",
+          label: "Anthropic 키 발급 / 확인",
           href: "https://console.anthropic.com/settings/keys",
         },
       ],
@@ -89,7 +89,8 @@ const RULES: Rule[] = [
 
   // ── 인증/세션 ───────────────────────────────
   {
-    match: /로그인이 필요|401|Unauthorized|JWT/i,
+    // Supabase 세션 만료 시그널만 매칭 — Claude/OpenAI 401과 구분
+    match: /로그인이 필요|JWT expired|jwt_expired|session.*expired|세션이 만료|Auth session missing/i,
     hint: {
       title: "로그인이 필요해요",
       hint: "세션이 만료됐어요. 다시 로그인하고 작업을 이어가주세요.",
