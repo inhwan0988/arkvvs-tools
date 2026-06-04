@@ -1,7 +1,29 @@
 import Link from "next/link";
 
-// 표시용 라벨(배지)에만 쓰임. 다운로드 링크는 버전과 무관하게 항상 최신을 가리킴.
-const APP_VERSION = "1.1.2";
+// GitHub 최신 릴리스를 못 가져올 때만 쓰는 fallback. 배지 표시용.
+const FALLBACK_VERSION = "1.1.2";
+
+const RELEASES_REPO = "hanna0099/Ark-Points-Pro";
+
+// 최신 릴리스 태그를 GitHub API로 조회. 새 버전 릴리스하면 페이지가 자동 갱신됨.
+// 1시간 캐시로 unauthenticated rate limit(60/hr)을 넉넉히 피함. 실패 시 fallback.
+async function getLatestVersion(): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${RELEASES_REPO}/releases/latest`,
+      {
+        headers: { Accept: "application/vnd.github+json" },
+        next: { revalidate: 3600 },
+      },
+    );
+    if (!res.ok) return FALLBACK_VERSION;
+    const data = (await res.json()) as { tag_name?: string };
+    // tag_name 이 "v1.1.2" 또는 "1.1.2" 둘 다 올 수 있어 v 접두사 제거 후 통일.
+    return data.tag_name?.replace(/^v/, "") || FALLBACK_VERSION;
+  } catch {
+    return FALLBACK_VERSION;
+  }
+}
 
 // GitHub releases/latest/download/ 는 항상 최신 릴리스의 에셋으로 리다이렉트됨.
 // 파일명에 버전이 없는 고정 이름이라 새 버전이 나와도 링크를 바꿀 필요가 없음.
@@ -22,7 +44,9 @@ const DOWNLOADS = {
   },
 } as const;
 
-export default function PremiereAutoEditPage() {
+export default async function PremiereAutoEditPage() {
+  const appVersion = await getLatestVersion();
+
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 sm:py-12">
       <div className="mb-2">
@@ -46,7 +70,7 @@ export default function PremiereAutoEditPage() {
           </div>
         </div>
         <span className="inline-block px-2.5 py-0.5 rounded-full bg-chip text-sub text-[11px] font-semibold">
-          v{APP_VERSION} · Mac / Windows 데스크탑 앱
+          v{appVersion} · Mac / Windows 데스크탑 앱
         </span>
       </header>
 
@@ -55,7 +79,7 @@ export default function PremiereAutoEditPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-ink">📥 다운로드</h2>
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-brandSoft text-brand">
-            v{APP_VERSION}
+            v{appVersion}
           </span>
         </div>
 
