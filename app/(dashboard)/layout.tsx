@@ -3,6 +3,8 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import Header from "@/components/dashboard/Header";
 import { SidebarProvider } from "@/components/dashboard/SidebarContext";
 import SidebarOpenFloatingButton from "@/components/dashboard/SidebarOpenFloatingButton";
+import ChannelTalk from "@/components/ChannelTalk";
+import SessionKeepAlive from "@/components/dashboard/SessionKeepAlive";
 
 export default async function DashboardLayout({
   children,
@@ -28,6 +30,14 @@ export default async function DashboardLayout({
         </div>
         <SidebarOpenFloatingButton />
       </div>
+      <SessionKeepAlive />
+      <ChannelTalk
+        profile={{
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+        }}
+      />
     </SidebarProvider>
   );
 }

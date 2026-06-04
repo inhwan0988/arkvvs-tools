@@ -17,6 +17,11 @@
 - Server 컴포넌트는 async, Client는 "use client"
 - error.tsx는 `app/(dashboard)/tools/sns-tracker/error.tsx` 패턴 그대로 복사 (이름만 변경)
 - 새 API는 `app/api/tools/<slug>/`에, 인증 필요하면 middleware skip 안 함
+- **에러 표시는 반드시 `<ErrorWithHint>` 사용** (자체 div 에러 박스 금지)
+  - `import ErrorWithHint from "@/components/ErrorWithHint"`
+  - `<ErrorWithHint message={error} toolSlug="<slug>" route="/api/..." onDismiss={() => setError(null)} />`
+  - 이유: 자동 보고 + 친절 안내 + 해결 링크가 일관되게 작동
+- 새 흔한 에러 패턴이 있으면 `lib/error-hints.ts`에 한 줄 추가
 
 작업 후:
 1. `npx tsc --noEmit` 통과 확인

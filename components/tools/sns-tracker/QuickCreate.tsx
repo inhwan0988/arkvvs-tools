@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 
 /**
  * 토스 스타일 단축 URL 즉시 발급 카드.
@@ -186,9 +187,12 @@ export default function QuickCreate({
         )}
 
         {error && (
-          <div className="rounded-xl bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-            ⚠️ {error}
-          </div>
+          <ErrorWithHint
+            message={error}
+            toolSlug="sns-tracker"
+            route="/api/tools/sns-tracker/contents"
+            onDismiss={() => setError(null)}
+          />
         )}
 
         <button

@@ -1,14 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import type { ContentIdea } from "@/lib/tools/insta-planner/types";
 import {
   parseScript,
-  rowsToPlainText,
-  rowsToDialogueOnly,
-  rowsToDirectionOnly,
-  type ScriptRow,
+  rowsToDialogueSection,
+  rowsToDirectionSection,
 } from "@/lib/tools/insta-planner/script-parser";
 
 export default function Step4Generate() {
@@ -23,16 +22,25 @@ export default function Step4Generate() {
     scriptText,
     setScriptText,
     appendScriptText,
+    dialogueDraft,
+    setDialogueDraft,
+    directionDraft,
+    setDirectionDraft,
     goToStep,
   } = useWizard();
 
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const [userEdited, setUserEdited] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const handleGenerate = useCallback(async () => {
     if (!selectedIdea || !selectedReel) return;
     setScriptText("");
+    setDialogueDraft("");
+    setDirectionDraft("");
+    setUserEdited(false);
     setError(null);
     setStreaming(true);
     const ctrl = new AbortController();
@@ -76,32 +84,69 @@ export default function Step4Generate() {
     anthropicApiKey,
     setScriptText,
     appendScriptText,
+    setDialogueDraft,
+    setDirectionDraft,
   ]);
 
-  const rows = useMemo<ScriptRow[]>(() => parseScript(scriptText), [scriptText]);
+  const rows = useMemo(() => parseScript(scriptText), [scriptText]);
 
-  const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  // streaming 중 — 두 draft를 AI 출력에서 자동 동기화 (사용자가 직접 편집한 적 없을 때)
+  const liveDialogue = useMemo(() => rowsToDialogueSection(rows), [rows]);
+  const liveDirection = useMemo(() => rowsToDirectionSection(rows), [rows]);
+  useEffect(() => {
+    if (userEdited) return;
+    if (streaming || (scriptText && !dialogueDraft && !directionDraft)) {
+      setDialogueDraft(liveDialogue);
+      setDirectionDraft(liveDirection);
+    }
+  }, [
+    streaming,
+    scriptText,
+    liveDialogue,
+    liveDirection,
+    userEdited,
+    dialogueDraft,
+    directionDraft,
+    setDialogueDraft,
+    setDirectionDraft,
+  ]);
 
   function flashCopy(msg: string) {
     setCopyMsg(msg);
     setTimeout(() => setCopyMsg(null), 1500);
   }
 
-  async function copyAll() {
-    if (!scriptText) return;
-    await navigator.clipboard.writeText(rowsToPlainText(rows));
-    flashCopy("✓ 전체 복사됨");
-  }
   async function copyDialogue() {
-    if (!scriptText) return;
-    await navigator.clipboard.writeText(rowsToDialogueOnly(rows));
-    flashCopy("✓ 대사만 복사됨");
+    if (!dialogueDraft.trim()) return;
+    await navigator.clipboard.writeText(dialogueDraft);
+    flashCopy("✓ 대본 복사됨");
   }
   async function copyDirection() {
-    if (!scriptText) return;
-    await navigator.clipboard.writeText(rowsToDirectionOnly(rows));
-    flashCopy("✓ 연출만 복사됨");
+    if (!directionDraft.trim()) return;
+    await navigator.clipboard.writeText(directionDraft);
+    flashCopy("✓ 연출 복사됨");
   }
+  async function copyBoth() {
+    const combined = [
+      "📜 대본",
+      dialogueDraft,
+      "",
+      "🎨 연출",
+      directionDraft,
+    ].join("\n");
+    await navigator.clipboard.writeText(combined.trim());
+    flashCopy("✓ 전체 복사됨");
+  }
+
+  function restoreOriginal() {
+    if (!confirm("AI가 생성한 원본으로 되돌릴까요? 편집한 내용은 사라집니다."))
+      return;
+    setDialogueDraft(liveDialogue);
+    setDirectionDraft(liveDirection);
+    setUserEdited(false);
+  }
+
+  const hasOutput = scriptText.length > 0 || dialogueDraft.length > 0;
 
   return (
     <div className="space-y-4">
@@ -120,7 +165,7 @@ export default function Step4Generate() {
       </div>
 
       {/* 아이디어 카드 */}
-      {!scriptText && (
+      {!hasOutput && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {ideas.map((idea) => (
             <IdeaCard
@@ -134,7 +179,7 @@ export default function Step4Generate() {
       )}
 
       {/* 생성 버튼 */}
-      {selectedIdea && !scriptText && (
+      {selectedIdea && !hasOutput && (
         <div className="flex justify-center">
           <button
             onClick={handleGenerate}
@@ -146,48 +191,55 @@ export default function Step4Generate() {
         </div>
       )}
 
-      {/* 대본 출력 — 2-column (대사 / 연출) */}
-      {scriptText && (
-        <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h3 className="text-sm font-bold text-ink">
-              📝 콘텐츠 기획서 / 대본
+      {/* 결과 — 두 큰 섹션 (대본 / 연출) */}
+      {hasOutput && (
+        <div className="space-y-4">
+          {/* 상단 액션 바 */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-bold text-ink">
+                📝 콘텐츠 기획서
+              </h3>
               {streaming && (
-                <span className="ml-2 text-[10px] text-mute animate-pulse">
+                <span className="text-[10px] text-mute animate-pulse">
                   생성 중...
                 </span>
               )}
+              {!streaming && userEdited && (
+                <span className="text-[10px] font-bold text-warn">
+                  · 편집됨
+                </span>
+              )}
               {copyMsg && (
-                <span className="ml-2 text-[10px] font-bold text-success">
+                <span className="text-[10px] font-bold text-success">
                   {copyMsg}
                 </span>
               )}
-            </h3>
+            </div>
             <div className="flex gap-1.5 flex-wrap">
               <button
-                onClick={copyDialogue}
-                className="px-3 py-1 rounded-lg bg-chip text-xs font-semibold hover:bg-line"
-                title="출연자에게 줄 대사만"
-              >
-                🎙️ 대사만 복사
-              </button>
-              <button
-                onClick={copyDirection}
-                className="px-3 py-1 rounded-lg bg-chip text-xs font-semibold hover:bg-line"
-                title="디렉터/편집자에게 줄 연출 큐시트만"
-              >
-                🎨 연출만 복사
-              </button>
-              <button
-                onClick={copyAll}
-                className="px-3 py-1 rounded-lg bg-brand text-white text-xs font-bold hover:bg-brandHover"
+                onClick={copyBoth}
+                disabled={streaming}
+                className="px-3 py-1 rounded-lg bg-brand text-white text-xs font-bold hover:bg-brandHover disabled:opacity-40"
               >
                 📋 전체 복사
               </button>
+              {!streaming && userEdited && (
+                <button
+                  onClick={restoreOriginal}
+                  className="px-3 py-1 rounded-lg bg-chip text-xs font-semibold hover:bg-line"
+                  title="AI 원본 복원"
+                >
+                  ↺ 원본 복원
+                </button>
+              )}
               {!streaming && (
                 <button
                   onClick={() => {
                     setScriptText("");
+                    setDialogueDraft("");
+                    setDirectionDraft("");
+                    setUserEdited(false);
                     setSelectedIdea(null);
                   }}
                   className="px-3 py-1 rounded-lg bg-chip text-xs font-semibold hover:bg-line"
@@ -198,94 +250,98 @@ export default function Step4Generate() {
             </div>
           </div>
 
-          {/* 컬럼 헤더 */}
-          <div className="hidden md:grid md:grid-cols-[1fr_1.2fr] gap-3 mb-2 px-1">
-            <div className="text-[10px] font-bold text-mute uppercase tracking-wider">
-              🎙️ 출연자 대사 (그대로 읽기)
-            </div>
-            <div className="text-[10px] font-bold text-mute uppercase tracking-wider">
-              🎨 화면 연출 (텍스트/시각/디렉션)
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {rows.length === 0 && (
-              <div className="text-center text-mute text-sm py-8">
-                생성 중...
-              </div>
-            )}
-            {rows.map((row, i) => (
-              <ScriptRowView key={i} row={row} />
-            ))}
+          {/* 두 섹션 — 대본 / 연출 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SectionEditor
+              icon="🎙️"
+              title="대본 파트"
+              hint="출연자에게 그대로 줄 대사"
+              value={dialogueDraft}
+              onChange={(v) => {
+                setDialogueDraft(v);
+                setUserEdited(true);
+              }}
+              onCopy={copyDialogue}
+              readOnly={streaming}
+              accent="ink"
+            />
+            <SectionEditor
+              icon="🎨"
+              title="연출 파트"
+              hint="디렉터/편집자에게 줄 큐시트"
+              value={directionDraft}
+              onChange={(v) => {
+                setDirectionDraft(v);
+                setUserEdited(true);
+              }}
+              onCopy={copyDirection}
+              readOnly={streaming}
+              accent="brand"
+            />
           </div>
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-          ⚠️ {error}
-        </div>
+        <ErrorWithHint
+          message={error}
+          toolSlug="insta-planner"
+          route="/api/tools/insta-planner/generate-script"
+          onDismiss={() => setError(null)}
+        />
       )}
     </div>
   );
 }
 
-function ScriptRowView({ row }: { row: ScriptRow }) {
-  // 머리말 (헤더 없는 leading row) — 단일 셀
-  if (!row.header && (row.dialogue.length || row.direction.length || row.other.length)) {
-    return (
-      <div className="rounded-lg bg-chip/40 p-3 text-[13px] text-sub leading-relaxed">
-        {[...row.dialogue, ...row.direction, ...row.other].map((l, i) => (
-          <p key={i}>{l}</p>
-        ))}
-      </div>
-    );
-  }
-  if (!row.header) return null;
-
+function SectionEditor({
+  icon,
+  title,
+  hint,
+  value,
+  onChange,
+  onCopy,
+  readOnly,
+  accent,
+}: {
+  icon: string;
+  title: string;
+  hint: string;
+  value: string;
+  onChange: (v: string) => void;
+  onCopy: () => void;
+  readOnly: boolean;
+  accent: "ink" | "brand";
+}) {
+  const accentBg = accent === "brand" ? "bg-brandSoft/15" : "bg-chip/40";
   return (
-    <div className="rounded-xl border border-line">
-      {/* 시간대 헤더 */}
-      <div className="px-3 py-2 bg-chip/60 border-b border-line rounded-t-xl">
-        <span className="text-[12px] font-bold text-ink">[{row.header}]</span>
-      </div>
-      {/* 2-column body */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr] divide-y md:divide-y-0 md:divide-x divide-line">
-        {/* 왼쪽 — 대사 */}
-        <div className="p-3 space-y-2 min-h-[60px]">
-          {row.dialogue.length === 0 && (
-            <p className="text-[11px] text-mute italic">대사 없음 (B-roll/연출만)</p>
-          )}
-          {row.dialogue.map((d, i) => (
-            <p
-              key={i}
-              className="text-[13.5px] text-ink leading-relaxed font-medium"
-            >
-              {d}
-            </p>
-          ))}
+    <div className="rounded-xl2 border border-line bg-surface shadow-card flex flex-col min-h-[420px]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+        <div>
+          <div className="text-sm font-bold text-ink">
+            <span className="mr-1.5">{icon}</span>
+            {title}
+          </div>
+          <div className="text-[10px] text-mute mt-0.5">{hint}</div>
         </div>
-        {/* 오른쪽 — 연출 */}
-        <div className="p-3 space-y-1.5 min-h-[60px] bg-brandSoft/15">
-          {row.direction.length === 0 && row.other.length === 0 && (
-            <p className="text-[11px] text-mute italic">연출 없음</p>
-          )}
-          {row.direction.map((d, i) => (
-            <p key={i} className="text-[12.5px] text-sub leading-relaxed">
-              <span className="mr-1.5 text-brand">▸</span>
-              {d}
-            </p>
-          ))}
-          {row.other.map((o, i) => (
-            <p
-              key={i}
-              className="text-[12.5px] text-mute leading-relaxed italic"
-            >
-              {o}
-            </p>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={onCopy}
+          disabled={readOnly || !value.trim()}
+          className="px-2.5 py-1 rounded-lg bg-chip text-[11px] font-semibold hover:bg-line disabled:opacity-40"
+        >
+          복사
+        </button>
       </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        readOnly={readOnly}
+        placeholder={readOnly ? "생성 중..." : ""}
+        className={`flex-1 w-full p-4 text-[13.5px] leading-relaxed text-ink font-medium resize-none focus:outline-none rounded-b-xl2 ${accentBg} ${
+          readOnly ? "cursor-default" : ""
+        }`}
+      />
     </div>
   );
 }

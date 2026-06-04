@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import {
   PLATFORMS,
   PLATFORM_META,
@@ -287,9 +288,12 @@ export default function RegisterForm({
           </div>
 
           {error && (
-            <div className="rounded-lg border border-danger/30 bg-dangerSoft px-3 py-2 text-sm font-semibold text-danger">
-              ⚠️ {error}
-            </div>
+            <ErrorWithHint
+              message={error}
+              toolSlug="sns-tracker"
+              route="/api/tools/sns-tracker/contents"
+              onDismiss={() => setError(null)}
+            />
           )}
 
           <button

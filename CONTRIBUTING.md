@@ -82,7 +82,7 @@ git worktree remove ../arkvvs-feat-userpage
 - API key, .env를 commit
 - main에 직접 push (branch protection으로 차단됨)
 
-## 📝 PR 만들기
+## 📝 PR 만들기 (1줄로 끝)
 
 ### Branch 이름
 - `feat/<이름>-<task>`: 새 기능
@@ -93,17 +93,34 @@ git worktree remove ../arkvvs-feat-userpage
 첫 줄 50자 이내, 한국어 OK.
 예: `feat(spread): AI 캡션 플랫폼별 변환`
 
-### PR 생성
+### PR 생성 — 한 줄
 ```bash
-gh pr create --title "feat(spread): AI 캡션" --body "## 변경\n- ...\n\n## 테스트\n- ..."
+git push -u origin HEAD && gh pr create --fill
 ```
 
-자동으로:
-- ✅ GitHub Actions가 `tsc --noEmit` + `lint` 검증
-- ✅ Vercel이 preview URL 생성
-- ✅ Claude Code Action이 PR 리뷰 (설정되어 있으면)
+자동으로 일어나는 일:
+- ✅ GitHub Actions가 `tsc --noEmit` + `lint` 검증 (CI 통과 필수)
+- ✅ Vercel preview URL 생성
+- ✅ **`auto-merge` 라벨 자동 부착** (`.github/workflows/auto-merge.yml`)
+- ✅ **GitHub native auto-merge 자동 활성화** — CI 통과 + approve 1명 받는 즉시 자동 squash merge + branch 삭제
+- ✅ **main 변경 시 PR branch 자동 update** (`.github/workflows/auto-update-pr.yml`) — stale 충돌 자동 해소
 
-joshua가 review + merge.
+### 직원이 신경 쓸 일 = 0
+- 라벨 안 붙여도 됨 (워크플로우가 자동)
+- `gh pr merge --auto` 안 쳐도 됨 (자동)
+- main pull 매번 안 해도 됨 (GitHub 쪽은 자동)
+
+### 다른 직원 approve만 1명 필요
+- 직원 A의 PR → 직원 B 또는 joshua가 "Approve" 1번
+- joshua가 본인 PR을 만들면 → 직원이 approve
+
+### 단, 본인 PC에서는
+```bash
+# 새 branch 시작할 때만 main 동기화 권장
+git checkout main && git pull
+git checkout -b feat/<task>
+```
+이거 빠뜨려도 GitHub Action이 PR을 자동 update하지만, 본인 local과 origin이 어긋나서 다음 push 시 reject될 수 있음. 그때 `git pull --rebase origin <branch>` 한 번.
 
 ## 🚦 권한 매트릭스
 

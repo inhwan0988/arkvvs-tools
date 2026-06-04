@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import PairingPanel from "./PairingPanel";
 import JobList from "./JobList";
 import UpdateBanner from "./UpdateBanner";
@@ -49,9 +50,12 @@ export default function HelperPanel() {
   return (
     <div className="space-y-4">
       {err && (
-        <div className="rounded-lg border border-danger/30 bg-dangerSoft px-3 py-2 text-sm font-semibold text-danger">
-          ⚠️ {err}
-        </div>
+        <ErrorWithHint
+          message={err}
+          toolSlug="capcut-helper"
+          route="/api/tools/capcut-helper/devices"
+          onDismiss={() => setErr(null)}
+        />
       )}
 
       {devices.length === 0 ? (

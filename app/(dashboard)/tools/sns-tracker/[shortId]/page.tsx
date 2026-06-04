@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import MiniLineChart from "@/components/tools/sns-tracker/MiniLineChart";
 import { PLATFORM_META, type Platform } from "@/lib/tools/sns-tracker/types";
 
@@ -157,8 +158,13 @@ export default function SnsTrackerDetailPage({
         >
           ← 트래커로 돌아가기
         </Link>
-        <div className="rounded-xl2 bg-dangerSoft px-4 py-3 mt-4 text-sm font-semibold text-danger">
-          ⚠️ {error ?? "데이터 없음"}
+        <div className="mt-4">
+          <ErrorWithHint
+            message={error ?? "데이터 없음"}
+            toolSlug="sns-tracker"
+            route={`/api/tools/sns-tracker/contents/${shortId}/analytics`}
+            onDismiss={() => setError(null)}
+          />
         </div>
       </div>
     );

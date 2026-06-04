@@ -41,6 +41,13 @@
 - 한국어 UI 텍스트, 영문 변수명
 - 주석 최소 (코드 자체로 명확하게). `WHY`만 적기
 
+## 에러 표시 (필수)
+사용자에게 에러 박스 보일 때는 반드시 `<ErrorWithHint>` 사용. 자체 `<div className="bg-dangerSoft">` 금지.
+- `import ErrorWithHint from "@/components/ErrorWithHint"`
+- `message`, `toolSlug`, `route`, `onDismiss` props
+- 자동으로 `/api/log-error`에 보고 + `lib/error-hints.ts` 매핑으로 친절 안내 + 해결 링크 표시
+- 외부 앱(vvs-youtube-tool, ark-clipper, capcut-helper)도 같은 endpoint로 익명 POST 가능 (CORS 열림)
+
 ## 워크플로우
 - main 직접 push 금지 — feature branch + PR
 - branch 이름: `feat/<이름>`, `fix/<이름>`, `chore/<이름>`

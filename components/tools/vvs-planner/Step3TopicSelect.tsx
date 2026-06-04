@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import TopicCard from "./TopicCard";
 import VideoAnalysisCard from "./VideoAnalysisCard";
@@ -270,10 +271,13 @@ export default function Step3TopicSelect() {
       )}
 
       {error && !isLoading && (
-        <div className="mx-auto max-w-md text-center">
-          <div className="rounded-xl border border-danger/30 bg-dangerSoft px-4 py-3 text-sm font-semibold text-danger">
-            {error}
-          </div>
+        <div className="mx-auto max-w-md">
+          <ErrorWithHint
+            message={error}
+            toolSlug="vvs-planner"
+            route="/api/tools/vvs-planner/topics"
+            onDismiss={() => setError(null)}
+          />
         </div>
       )}
 
