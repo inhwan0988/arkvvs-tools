@@ -7,6 +7,7 @@ import TopicCard from "./TopicCard";
 import VideoAnalysisCard from "./VideoAnalysisCard";
 import UserIntentInput from "./UserIntentInput";
 import SelectedVideoBanner from "./SelectedVideoBanner";
+import ReferenceVideosInput from "./ReferenceVideosInput";
 import type { Topic, VideoAnalysis } from "@/lib/tools/vvs-planner/types";
 
 export default function Step3TopicSelect() {
@@ -18,6 +19,8 @@ export default function Step3TopicSelect() {
     setTopics,
     selectedTopic,
     setSelectedTopic,
+    setInterviewQuestions,
+    setInterviewAnswers,
     isLoading,
     setLoading,
     error,
@@ -354,6 +357,9 @@ export default function Step3TopicSelect() {
 
           <UserIntentInput intent={userIntent} onChange={setUserIntent} />
 
+          {/* 레퍼런스 영상 추가 — Step 2 영상 외에 더 참고할 영상 */}
+          <ReferenceVideosInput />
+
           <div className="flex justify-end">
             <button
               onClick={handleGenerateTopics}
@@ -418,12 +424,27 @@ export default function Step3TopicSelect() {
           </div>
 
           {selectedTopic && (
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex flex-col items-center gap-2">
               <button
-                onClick={() => goToStep(4)}
+                onClick={() => {
+                  // 새 주제 선택 시 인터뷰 state 초기화 (다른 주제에 대한 답 섞이는 거 방지)
+                  setInterviewQuestions([]);
+                  setInterviewAnswers({});
+                  goToStep(3.5);
+                }}
                 className="rounded-xl bg-brand px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-brandHover"
               >
-                이 주제로 대본 생성하기
+                이 주제로 인터뷰 시작 →
+              </button>
+              <button
+                onClick={() => {
+                  setInterviewQuestions([]);
+                  setInterviewAnswers({});
+                  goToStep(4);
+                }}
+                className="text-xs text-mute hover:text-ink underline underline-offset-2"
+              >
+                인터뷰 건너뛰고 바로 원고 생성
               </button>
             </div>
           )}

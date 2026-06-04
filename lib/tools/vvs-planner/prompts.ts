@@ -1,4 +1,11 @@
-import type { ChannelProfile, ReferenceVideo, UserIntent } from "./types";
+import type {
+  ChannelProfile,
+  InterviewAnswers,
+  InterviewQuestion,
+  ParagraphTone,
+  ReferenceVideo,
+  UserIntent,
+} from "./types";
 import { APPROACH_LABELS } from "./types";
 
 /**
@@ -153,6 +160,37 @@ ${transcript.slice(0, 8000)}
 ]`;
 }
 
+/**
+ * 인터뷰 답변을 prompt에 자연스러운 문장 블록으로 변환.
+ * 단답형(30자 이내) 답들을 모아서 "사용자가 직접 말한 내용"으로 강하게 주입.
+ */
+function buildInterviewContext(
+  questions: InterviewQuestion[] | null | undefined,
+  answers: InterviewAnswers | null | undefined,
+): string {
+  if (!questions || !answers) return "";
+  const filled = questions
+    .map((q) => ({ q, a: (answers[q.id] || "").trim() }))
+    .filter((qa) => qa.a.length > 0);
+  if (filled.length === 0) return "";
+  const parts: string[] = [
+    "<사용자 인터뷰 답변 (반드시 100% 원고에 자연스럽게 녹여 작성)>",
+  ];
+  filled.forEach((qa, i) => {
+    parts.push(`Q${i + 1}. ${qa.q.text}`);
+    parts.push(`A${i + 1}. ${qa.a}`);
+  });
+  parts.push("</사용자 인터뷰 답변>");
+  parts.push("");
+  parts.push(
+    "⚠️ 위 인터뷰 답변은 사용자가 본인 입으로 말한 내용이에요. " +
+      "이 답들이 원고의 핵심 콘텐츠가 됩니다. " +
+      "각 답을 단순 나열하지 말고, 자연스러운 문장 흐름 안에 녹여서 작성하세요. " +
+      "답에 없는 내용을 임의로 추가/창작하지 마세요.",
+  );
+  return parts.join("\n");
+}
+
 export function buildScriptPrompt(
   topic: { title: string; description: string; angle: string },
   transcript: string,
@@ -161,11 +199,17 @@ export function buildScriptPrompt(
     channelProfile?: ChannelProfile | null;
     referenceVideos?: ReferenceVideo[] | null;
     userIntent?: UserIntent | null;
+    interviewQuestions?: InterviewQuestion[] | null;
+    interviewAnswers?: InterviewAnswers | null;
   },
 ): string {
   const channelCtx = buildChannelContext(options?.channelProfile);
   const refCtx = buildReferenceContext(options?.referenceVideos);
   const intentCtx = buildIntentContext(options?.userIntent);
+  const interviewCtx = buildInterviewContext(
+    options?.interviewQuestions,
+    options?.interviewAnswers,
+  );
 
   const targetMin = options?.channelProfile?.avgDurationSeconds
     ? Math.max(3, Math.round(options.channelProfile.avgDurationSeconds / 60))
@@ -174,9 +218,13 @@ export function buildScriptPrompt(
 
   return `당신은 유튜브 대본 작성 전문가입니다.${
     channelCtx ? " 사용자의 채널 톤/말투에 정확히 맞춰 작성해주세요." : ""
-  }${intentCtx ? " 사용자가 명시한 의도를 100% 반영하세요." : ""}
+  }${intentCtx ? " 사용자가 명시한 의도를 100% 반영하세요." : ""}${
+    interviewCtx ? " 인터뷰 답변을 원고의 실제 내용으로 사용하세요." : ""
+  }
 
 ${intentCtx}
+
+${interviewCtx}
 
 ${channelCtx}
 
@@ -291,4 +339,131 @@ ${transcript.slice(0, 8000)}
   "viralReasons": ["...", "..."],
   "borrowableAngles": ["...", "..."]
 }`;
+}
+
+/**
+ * Step 3.5 인터뷰 질문 생성 prompt.
+ *
+ * 레퍼런스 영상 transcript를 역분해 → 그 영상에서 화자가 "말했던 것"을 사용자가
+ * 답할 수 있도록 단답형 질문으로 변환. 사용자가 직접 답하면 원고 quality ↑.
+ *
+ * 마케팅 DB 수집 광고 패턴: 사용자가 자유 입력으로 막힐 때 한 줄 질문 하나씩 던지면 답함.
+ */
+export function buildInterviewQuestionsPrompt(args: {
+  selectedTopic: { title: string; description: string; angle: string };
+  referenceTranscript: string;
+  channelProfile?: ChannelProfile | null;
+  userIntent?: UserIntent | null;
+  videoTitle?: string;
+}): string {
+  const channelCtx = buildChannelContext(args.channelProfile);
+  const intentCtx = buildIntentContext(args.userIntent);
+
+  return `당신은 유튜브 콘텐츠 인터뷰어입니다. 크리에이터가 직접 원고를 쓸 수 있도록 핵심을 짚는 단답형 질문을 던지세요.
+
+${intentCtx}
+
+${channelCtx}
+
+<만들 영상 주제>
+제목: ${args.selectedTopic.title}
+설명: ${args.selectedTopic.description}
+독특한 각도: ${args.selectedTopic.angle}
+</만들 영상 주제>
+
+<레퍼런스 영상 자막 (이런 구조로 만들고 싶음)>
+${args.videoTitle ? `제목: ${args.videoTitle}\n` : ""}${args.referenceTranscript.slice(0, 6000)}
+</레퍼런스 영상 자막>
+
+**역할**:
+레퍼런스 영상의 화자가 "본인 입으로 말했던 핵심"을 추출하고, 그것을 사용자(크리에이터)도 동일하게 자기 입으로 답할 수 있도록 단답형 질문으로 변환하세요.
+사용자는 빠르게 답해야 하므로 30자 이내로 답할 수 있는 질문이어야 합니다.
+질문이 추상적이면 안 됩니다 — 구체적인 경험, 숫자, 사례, 한 줄 의견을 묻는 식.
+
+**질문 개수**: 5~8개 (보통 6개 권장)
+
+**질문 타입**:
+- "short_text": 자유 단답형 (예: "본인 경험 한 줄로 — 가장 큰 실수는?")
+- "chips": 3-5개 옵션 중 선택 (예: "타겟 시청자 연령대는?" / options: ["20대","30대","40대+"])
+
+**구성 가이드** (이 순서/유형 권장):
+1. 후킹 — 시청자가 끝까지 봐야 할 이유 한 줄 (사용자 본인 경험/충격 사실)
+2. 핵심 메시지 — 이 영상에서 전달하고 싶은 단 한 가지
+3. 본인 사례 — 가장 인상 깊었던 구체적 케이스/숫자
+4. 본론 1-3 — 영상에서 다룰 포인트 각 한 줄
+5. 차별점 — 다른 영상과 다른 점
+6. 시청자 행동 — 영상 끝에 시청자가 뭘 하길 바라는지
+
+⚠️ JSON 규칙:
+- 모든 문자열 큰따옴표
+- 응답은 { 시작 } 종료. 코드블록/설명 X.
+
+응답 형식:
+{
+  "questions": [
+    {
+      "id": "q1",
+      "text": "이 영상을 끝까지 봐야 할 이유 한 줄? (본인 경험으로)",
+      "type": "short_text",
+      "hint": "예: '저도 처음엔 이 함정에 빠졌어요'"
+    },
+    {
+      "id": "q2",
+      "text": "타겟 시청자 연령대?",
+      "type": "chips",
+      "options": ["20대","30대","40대+","전부"]
+    }
+  ]
+}`;
+}
+
+/**
+ * Step 4 단락 재생성 prompt.
+ *
+ * 전체 원고 흐름은 유지하면서 특정 단락만 다시 작성. tone에 따라 톤/길이 조절.
+ */
+export function buildParagraphRegenPrompt(args: {
+  fullScript: string;
+  paragraphIndex: number;
+  paragraph: string;
+  tone?: ParagraphTone;
+  channelProfile?: ChannelProfile | null;
+}): string {
+  const toneInstruction = (() => {
+    switch (args.tone) {
+      case "punchy":
+        return "톤을 더 자극적이고 임팩트 있게. 첫 문장에 후킹, 짧고 강한 문장.";
+      case "calm":
+        return "톤을 더 차분하고 신뢰감 있게. 단정한 어조, 호흡이 긴 문장.";
+      case "expand":
+        return "분량을 1.5~2배로 늘리세요. 예시/디테일 추가, 같은 메시지를 더 풍부하게.";
+      case "shrink":
+        return "분량을 절반 정도로 줄이세요. 핵심만 남기고 군더더기 제거.";
+      default:
+        return "톤은 그대로, 표현만 다듬어서 더 자연스럽게.";
+    }
+  })();
+
+  const channelCtx = buildChannelContext(args.channelProfile);
+
+  return `당신은 유튜브 대본 작성 전문가입니다. 아래 전체 원고 중 한 단락만 다시 작성하세요.
+
+${channelCtx}
+
+<전체 원고 (문맥 유지용)>
+${args.fullScript.slice(0, 5000)}
+</전체 원고>
+
+<재작성 대상 단락 (index ${args.paragraphIndex})>
+${args.paragraph}
+</재작성 대상 단락>
+
+**규칙**:
+1. ${toneInstruction}
+2. 시간 마커 [0:00-0:15 ...] 또는 [📌 본론 1] 형식이 있다면 그대로 유지.
+3. 💡 B-roll: "..." 표시가 있다면 그것도 유지 또는 자연스럽게 보완.
+4. 앞뒤 단락과 자연스럽게 연결 (문맥 깨지면 안 됨).
+5. 응답은 새 단락 본문만. 메타 설명/따옴표/코드블록 X.
+
+새 단락:`;
 }
