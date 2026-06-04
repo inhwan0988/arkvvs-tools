@@ -29,18 +29,19 @@ async function getLatestVersion(): Promise<string> {
 // 파일명에 버전이 없는 고정 이름이라 새 버전이 나와도 링크를 바꿀 필요가 없음.
 const RELEASE_BASE =
   "https://github.com/hanna0099/Ark-Points-Pro/releases/latest/download";
+// 임시: 다운로드 release repo 접근 권한 정리 전까지 비활성화 (404 회피)
 const DOWNLOADS = {
   mac: {
     url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-arm64.dmg`,
-    available: true,
+    available: false,
   },
   macIntel: {
     url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-x64.dmg`,
-    available: true,
+    available: false,
   },
   windows: {
     url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-x64.exe`,
-    available: true,
+    available: false,
   },
 } as const;
 
@@ -74,12 +75,29 @@ export default async function PremiereAutoEditPage() {
         </span>
       </header>
 
+      {/* 출시 준비 안내 — release repo 접근 권한 정리 후 활성화 예정 */}
+      <div className="mb-8 rounded-xl2 border border-warn/30 bg-warnSoft/40 p-4">
+        <p className="text-[12px] font-bold text-warn uppercase tracking-wider mb-1.5">
+          ⏳ 출시 준비 중
+        </p>
+        <p className="text-[13.5px] text-sub leading-relaxed">
+          데스크탑 앱 정식 다운로드는 곧 활성화됩니다. 알림이 필요하시면{" "}
+          <a
+            href="mailto:joshua@arkstudio.kr?subject=프리미어프로 반자동 편집 출시 알림"
+            className="text-brand font-bold hover:underline"
+          >
+            joshua@arkstudio.kr
+          </a>
+          로 메일 주시면 출시 즉시 안내해드릴게요.
+        </p>
+      </div>
+
       {/* 다운로드 섹션 */}
       <section className="mb-10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-ink">📥 다운로드</h2>
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-brandSoft text-brand">
-            v{appVersion}
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-chip text-mute">
+            준비 중
           </span>
         </div>
 
