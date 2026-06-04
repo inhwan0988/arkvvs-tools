@@ -1,7 +1,26 @@
 import Link from "next/link";
 
-const DOWNLOAD_URL = "/downloads/ArkPointsProSetup.exe";
-const APP_VERSION = "1.0.0";
+// 표시용 라벨(배지)에만 쓰임. 다운로드 링크는 버전과 무관하게 항상 최신을 가리킴.
+const APP_VERSION = "1.1.2";
+
+// GitHub releases/latest/download/ 는 항상 최신 릴리스의 에셋으로 리다이렉트됨.
+// 파일명에 버전이 없는 고정 이름이라 새 버전이 나와도 링크를 바꿀 필요가 없음.
+const RELEASE_BASE =
+  "https://github.com/hanna0099/Ark-Points-Pro/releases/latest/download";
+const DOWNLOADS = {
+  mac: {
+    url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-arm64.dmg`,
+    available: true,
+  },
+  macIntel: {
+    url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-x64.dmg`,
+    available: true,
+  },
+  windows: {
+    url: `${RELEASE_BASE}/Ark.Points.Pro-Setup-x64.exe`,
+    available: true,
+  },
+} as const;
 
 export default function PremiereAutoEditPage() {
   return (
@@ -27,52 +46,106 @@ export default function PremiereAutoEditPage() {
           </div>
         </div>
         <span className="inline-block px-2.5 py-0.5 rounded-full bg-chip text-sub text-[11px] font-semibold">
-          v{APP_VERSION} · Windows 데스크탑 앱
+          v{APP_VERSION} · Mac / Windows 데스크탑 앱
         </span>
       </header>
 
-      {/* 다운로드 + 설치 */}
+      {/* 다운로드 섹션 */}
       <section className="mb-10">
-        <div className="rounded-xl3 border-2 border-brand bg-brandSoft/40 p-6 shadow-card">
-          <h2 className="text-lg font-bold text-ink mb-1">📦 다운로드 &amp; 설치</h2>
-          <p className="text-sm text-sub mb-5 leading-relaxed">
-            설치파일 하나로 끝! Node.js, Git 등 별도 설치 없이 바로 사용할 수
-            있어요.
-          </p>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-ink">📥 다운로드</h2>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-brandSoft text-brand">
+            v{APP_VERSION}
+          </span>
+        </div>
 
-          <a
-            href={DOWNLOAD_URL}
-            download
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl2 bg-brand text-white font-bold text-base hover:opacity-90 transition shadow-card mb-6"
-          >
-            ⬇️ Ark Points Pro 다운로드 (Windows · 약 79MB)
-          </a>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <DownloadCard
+            title="Mac (Apple Silicon)"
+            subtitle="M1 / M2 / M3 / M4"
+            href={DOWNLOADS.mac.url}
+            ext=".dmg"
+          />
+          <DownloadCard
+            title="Mac (Intel)"
+            subtitle="2020 이전 Mac"
+            href={DOWNLOADS.macIntel.url}
+            ext=".dmg"
+          />
+          <DownloadCard
+            title="Windows"
+            subtitle="Windows 10/11 (64bit)"
+            href={DOWNLOADS.windows.url}
+            ext=".exe"
+          />
+        </div>
 
-          <h3 className="text-sm font-bold text-ink mb-3">설치 순서</h3>
-          <ol className="space-y-3 text-sm text-sub">
-            <Step n={1}>
-              위 버튼으로 <code className="px-1.5 py-0.5 rounded bg-chip text-ink text-[12px] font-mono">ArkPointsProSetup.exe</code> 다운로드
-            </Step>
-            <Step n={2}>
-              다운받은 파일 더블클릭 → 설치
-              <span className="block text-xs text-mute mt-1">
-                &ldquo;알 수 없는 게시자&rdquo; 경고 뜨면 → &ldquo;추가 정보 →
-                실행&rdquo;
-              </span>
-            </Step>
-            <Step n={3}>
-              <b>Premiere Pro 한 번 재시작</b> (CEP 플러그인 인식용)
-            </Step>
-            <Step n={4}>
-              바탕화면 또는 시작 메뉴에서 <b>&ldquo;Ark Points Pro&rdquo;</b> 실행
-            </Step>
+        <p className="text-[12px] text-mute mt-3">
+          설치파일 하나로 끝! Node.js, Git 등 별도 설치 없이 바로 사용할 수 있어요.
+        </p>
+      </section>
+
+      {/* 설치 안내 */}
+      <section className="mb-12">
+        <div className="rounded-xl3 border border-line bg-surface p-6 shadow-card">
+          <h2 className="text-lg font-bold text-ink mb-4">📋 설치 순서</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Windows */}
+            <div>
+              <h3 className="text-sm font-bold text-ink mb-3">🪟 Windows</h3>
+              <ol className="space-y-3 text-sm text-sub">
+                <Step n={1}>
+                  위 <b>Windows</b> 버튼으로 exe 다운로드
+                </Step>
+                <Step n={2}>
+                  다운받은 파일 더블클릭 → 설치
+                  <span className="block text-xs text-mute mt-1">
+                    &ldquo;알 수 없는 게시자&rdquo; 경고 뜨면 → &ldquo;추가 정보 →
+                    실행&rdquo;
+                  </span>
+                </Step>
+                <Step n={3}>
+                  <b>Premiere Pro 재시작</b> (CEP 플러그인 인식용)
+                </Step>
+                <Step n={4}>
+                  바탕화면에서 <b>&ldquo;Ark Points Pro&rdquo;</b> 실행
+                </Step>
+              </ol>
+            </div>
+
+            {/* Mac */}
+            <div>
+              <h3 className="text-sm font-bold text-ink mb-3">🍎 Mac</h3>
+              <ol className="space-y-3 text-sm text-sub">
+                <Step n={1}>
+                  위 <b>Mac</b> 버튼으로 dmg 다운로드 (본인 칩 확인)
+                </Step>
+                <Step n={2}>
+                  dmg 열고 → Applications 폴더로 드래그
+                  <span className="block text-xs text-mute mt-1">
+                    &ldquo;확인되지 않은 개발자&rdquo; → 시스템 설정 &gt; 보안 &gt;
+                    &ldquo;확인 없이 열기&rdquo;
+                  </span>
+                </Step>
+                <Step n={3}>
+                  <b>Premiere Pro 재시작</b> (CEP 플러그인 인식용)
+                </Step>
+                <Step n={4}>
+                  Launchpad 또는 Applications에서 <b>Ark Points Pro</b> 실행
+                </Step>
+              </ol>
+            </div>
+          </div>
+
+          <div className="mt-5 pt-4 border-t border-line">
             <Step n={5}>
               앱 내 <b>🤖 AI 설정</b> → Claude 또는 Gemini 선택 → API 키 입력
               <span className="block text-xs text-mute mt-1">
                 키는 관리자에게 문의
               </span>
             </Step>
-          </ol>
+          </div>
         </div>
       </section>
 
@@ -94,8 +167,8 @@ export default function PremiereAutoEditPage() {
         <div className="rounded-xl2 border border-line bg-surface p-5 shadow-card">
           <ul className="space-y-2.5 text-sm text-sub">
             <li>
-              <span className="font-bold text-ink">OS:</span> Windows 10/11
-              (64bit)
+              <span className="font-bold text-ink">OS:</span> Mac (Apple
+              Silicon 또는 Intel) 또는 Windows 10/11 (64bit)
             </li>
             <li>
               <span className="font-bold text-ink">필수:</span> Premiere Pro
@@ -120,6 +193,31 @@ export default function PremiereAutoEditPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function DownloadCard({
+  title,
+  subtitle,
+  href,
+  ext,
+}: {
+  title: string;
+  subtitle: string;
+  href: string;
+  ext: string;
+}) {
+  return (
+    <a
+      href={href}
+      className="flex flex-col items-center gap-2 rounded-xl2 border-2 border-line bg-surface p-5 text-center hover:border-brand hover:bg-brandSoft/30 transition shadow-card"
+    >
+      <span className="text-sm font-bold text-ink">{title}</span>
+      <span className="text-xs text-mute">{subtitle}</span>
+      <span className="mt-1 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-bold">
+        ⬇️ {ext}
+      </span>
+    </a>
   );
 }
 
