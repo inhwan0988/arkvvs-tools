@@ -205,6 +205,18 @@ export default function Sidebar({
             <span>멤버십 안내</span>
           </Link>
 
+          {/* ARK CLASS — 외부 커뮤니티 (커뮤니티 / 가이드 / 무료강의) */}
+          <a
+            href="https://community.arkvvs.ai/communities/groups/arkclass/home"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold transition text-sub hover:bg-chip"
+          >
+            <span className="text-base">🎓</span>
+            <span className="flex-1">ARK CLASS</span>
+            <span className="text-mute text-[11px]">↗</span>
+          </a>
+
           {isAdmin && (
             <>
               <div className="mt-6 px-3 mb-2 flex items-center gap-2">
