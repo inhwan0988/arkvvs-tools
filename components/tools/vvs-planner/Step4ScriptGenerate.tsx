@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
-import ScriptDisplay from "./ScriptDisplay";
+import ParagraphScriptDisplay from "./ParagraphScriptDisplay";
 
 export default function Step4ScriptGenerate() {
   const {
@@ -19,6 +19,8 @@ export default function Step4ScriptGenerate() {
     channelProfile,
     referenceVideoUrls,
     userIntent,
+    interviewQuestions,
+    interviewAnswers,
   } = useWizard();
 
   const [isStreaming, setIsStreaming] = useState(false);
@@ -56,6 +58,8 @@ export default function Step4ScriptGenerate() {
           channelProfile,
           referenceVideoUrls,
           userIntent,
+          interviewQuestions,
+          interviewAnswers,
         }),
         signal: controller.signal,
       });
@@ -104,10 +108,10 @@ export default function Step4ScriptGenerate() {
           <p className="mt-1 text-sm text-sub">주제: {selectedTopic?.title}</p>
         </div>
         <button
-          onClick={() => goToStep(3)}
+          onClick={() => goToStep(3.5)}
           className="text-sm font-semibold text-sub hover:text-ink"
         >
-          ← 주제 선택
+          ← 인터뷰 답변
         </button>
       </div>
 
@@ -122,7 +126,13 @@ export default function Step4ScriptGenerate() {
         </div>
       )}
 
-      <ScriptDisplay script={script} isStreaming={isStreaming} />
+      <ParagraphScriptDisplay
+        script={script}
+        isStreaming={isStreaming}
+        onScriptChange={setScript}
+        anthropicApiKey={anthropicApiKey}
+        channelProfile={channelProfile}
+      />
 
       <div className="mt-4 flex justify-center gap-3">
         <button
