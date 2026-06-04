@@ -6,6 +6,7 @@ import { useWizard } from "./WizardContext";
 import VideoCard from "./VideoCard";
 import ChannelProfileCard from "./ChannelProfileCard";
 import ReferenceVideosInput from "./ReferenceVideosInput";
+import SessionHistory from "./SessionHistory";
 import type {
   ChannelSize,
   DurationRange,
@@ -101,6 +102,7 @@ export default function Step1KeywordSearch() {
     setError,
     goToStep,
     youtubeApiKey,
+    loadSessionData,
   } = useWizard();
 
   const [input, setInput] = useState(keyword);
@@ -173,8 +175,56 @@ export default function Step1KeywordSearch() {
     goToStep(2);
   };
 
+  const pickSession = async (id: string) => {
+    try {
+      const res = await fetch(`/api/tools/vvs-planner/sessions/${id}`);
+      if (!res.ok) throw new Error("세션을 불러올 수 없습니다.");
+      const data = await res.json();
+      const s = data.session as Record<string, unknown>;
+      const stepProgress = (s.step_progress as number) || 1;
+      const restored = {
+        sessionId: s.id as string,
+        step: Math.max(1, Math.min(4, stepProgress)) as 1 | 2 | 3 | 4,
+        keyword: (s.keyword as string) || "",
+        selectedVideo: s.selected_video_id
+          ? {
+              videoId: s.selected_video_id as string,
+              title: (s.selected_video_title as string) || "",
+              channelId: "",
+              channelTitle: (s.selected_video_channel as string) || "",
+              thumbnail: (s.selected_video_thumbnail as string) || "",
+              publishedAt: "",
+              viewCount: 0,
+              subscriberCount: 0,
+              likeCount: 0,
+              commentCount: 0,
+              vvs: 0,
+              engagementRate: 0,
+              engagementMult: 1,
+              recencyMult: 1,
+              score: 0,
+              durationSec: 0,
+              isShorts: false,
+              hasCaption: true,
+            }
+          : null,
+        channelProfile: (s.channel_profile as never) ?? null,
+        userIntent: (s.user_intent as never) ?? { freeText: "" },
+        referenceVideoUrls: (s.reference_video_urls as string[]) ?? [],
+        selectedTopic: (s.selected_topic as never) ?? null,
+        interviewQuestions: (s.interview_questions as never) ?? [],
+        interviewAnswers: (s.interview_answers as never) ?? {},
+        script: (s.script_text as string) ?? "",
+      };
+      loadSessionData(restored);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "세션 복원 실패");
+    }
+  };
+
   return (
     <div>
+      <SessionHistory onPick={pickSession} />
       <ChannelProfileCard />
       <ReferenceVideosInput />
       <div className="flex gap-2">
