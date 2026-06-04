@@ -1,16 +1,17 @@
 "use client";
 
 import { cn } from "@/lib/tools/vvs-planner/utils";
-import type { WizardStep } from "@/lib/tools/vvs-planner/types";
 
-const STEPS: { step: WizardStep; label: string }[] = [
+type IndicatorStep = 1 | 2 | 3 | 4;
+
+const STEPS: { step: IndicatorStep; label: string }[] = [
   { step: 1, label: "키워드 검색" },
   { step: 2, label: "영상 선택" },
   { step: 3, label: "주제 선택" },
   { step: 4, label: "대본 생성" },
 ];
 
-export default function StepIndicator({ current }: { current: WizardStep }) {
+export default function StepIndicator({ current }: { current: IndicatorStep }) {
   return (
     <div className="mb-8 flex items-center justify-center gap-2">
       {STEPS.map(({ step, label }, i) => (

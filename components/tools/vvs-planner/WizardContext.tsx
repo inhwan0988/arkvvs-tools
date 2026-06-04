@@ -12,6 +12,8 @@ import type {
   ChannelProfile,
   ChannelSize,
   DurationRange,
+  InterviewAnswers,
+  InterviewQuestion,
   Period,
   SearchFilters,
   SortBy,
@@ -43,6 +45,10 @@ type State = {
   // v3: 영상 분석 + 사용자 의도
   videoAnalysis: VideoAnalysis | null;
   userIntent: UserIntent;
+  // v4: 인터뷰 (Step 3.5) + 세션 (history)
+  interviewQuestions: InterviewQuestion[];
+  interviewAnswers: InterviewAnswers;
+  sessionId: string | null;
 };
 
 type Actions = {
@@ -76,7 +82,29 @@ type Actions = {
   setReferenceVideoUrls: (urls: string[]) => void;
   setVideoAnalysis: (v: VideoAnalysis | null) => void;
   setUserIntent: (u: UserIntent) => void;
+  setInterviewQuestions: (q: InterviewQuestion[]) => void;
+  setInterviewAnswers: (a: InterviewAnswers) => void;
+  setSessionId: (id: string | null) => void;
+  loadSessionData: (data: Partial<RestorableSessionData>) => void;
 };
+
+/** 세션 복원 시 한 번에 주입할 수 있는 데이터 모음 */
+export interface RestorableSessionData {
+  step: WizardStep;
+  keyword: string;
+  selectedVideo: VideoResult | null;
+  transcript: string | null;
+  channelProfile: ChannelProfile | null;
+  referenceVideoUrls: string[];
+  userIntent: UserIntent;
+  selectedTopic: Topic | null;
+  interviewQuestions: InterviewQuestion[];
+  interviewAnswers: InterviewAnswers;
+  script: string;
+  sessionId: string | null;
+  videoAnalysis: VideoAnalysis | null;
+  topics: Topic[];
+}
 
 const Ctx = createContext<(State & Actions) | null>(null);
 
@@ -110,6 +138,30 @@ export function WizardProvider({ children }: { children: ReactNode }) {
   const [referenceVideoUrls, setReferenceVideoUrls] = useState<string[]>([]);
   const [videoAnalysis, setVideoAnalysis] = useState<VideoAnalysis | null>(null);
   const [userIntent, setUserIntent] = useState<UserIntent>({ freeText: "" });
+  const [interviewQuestions, setInterviewQuestions] = useState<InterviewQuestion[]>([]);
+  const [interviewAnswers, setInterviewAnswers] = useState<InterviewAnswers>({});
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const loadSessionData = useCallback((data: Partial<RestorableSessionData>) => {
+    if (data.step !== undefined) setStep(data.step);
+    if (data.keyword !== undefined) setKeyword(data.keyword);
+    if (data.selectedVideo !== undefined) setSelectedVideo(data.selectedVideo);
+    if (data.transcript !== undefined) setTranscript(data.transcript);
+    if (data.channelProfile !== undefined) setChannelProfile(data.channelProfile);
+    if (data.referenceVideoUrls !== undefined)
+      setReferenceVideoUrls(data.referenceVideoUrls);
+    if (data.userIntent !== undefined) setUserIntent(data.userIntent);
+    if (data.selectedTopic !== undefined) setSelectedTopic(data.selectedTopic);
+    if (data.interviewQuestions !== undefined)
+      setInterviewQuestions(data.interviewQuestions);
+    if (data.interviewAnswers !== undefined)
+      setInterviewAnswers(data.interviewAnswers);
+    if (data.script !== undefined) setScript(data.script);
+    if (data.sessionId !== undefined) setSessionId(data.sessionId);
+    if (data.videoAnalysis !== undefined) setVideoAnalysis(data.videoAnalysis);
+    if (data.topics !== undefined) setTopics(data.topics);
+    setError(null);
+  }, []);
 
   const appendScript = useCallback(
     (chunk: string) => setScript((s) => s + chunk),
@@ -134,6 +186,9 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setLoading(false);
     setVideoAnalysis(null);
     setUserIntent({ freeText: "" });
+    setInterviewQuestions([]);
+    setInterviewAnswers({});
+    setSessionId(null);
   }, []);
 
   const value = useMemo(
@@ -168,6 +223,9 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       referenceVideoUrls,
       videoAnalysis,
       userIntent,
+      interviewQuestions,
+      interviewAnswers,
+      sessionId,
       setKeyword,
       setPeriod,
       setMinViews,
@@ -198,6 +256,10 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       setReferenceVideoUrls,
       setVideoAnalysis,
       setUserIntent,
+      setInterviewQuestions,
+      setInterviewAnswers,
+      setSessionId,
+      loadSessionData,
     }),
     [
       step,
@@ -228,9 +290,13 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       referenceVideoUrls,
       videoAnalysis,
       userIntent,
+      interviewQuestions,
+      interviewAnswers,
+      sessionId,
       appendScript,
       goToStep,
       reset,
+      loadSessionData,
     ],
   );
 
