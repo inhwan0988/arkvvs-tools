@@ -104,7 +104,26 @@ export const APPROACH_LABELS: Record<NonNullable<UserIntent['approach']>, string
   combine: '내 채널 기존 주제와 결합',
 };
 
-export type WizardStep = 1 | 2 | 3 | 4;
+/**
+ * 인터뷰 질문 — Step 3.5에서 사용. Claude가 선택한 주제 + 레퍼런스를 분석해 5-8개 생성.
+ * 사용자가 답하면 그 답이 원고 prompt에 강하게 주입되어 generic 원고 방지.
+ */
+export interface InterviewQuestion {
+  id: string;            // unique key (uuid 또는 q1, q2 ...)
+  text: string;          // 질문 본문 (30자 이내 답 가능한 단답형)
+  type: 'short_text' | 'chips';
+  options?: string[];    // chips 타입일 때만 (3-5개 옵션)
+  hint?: string;         // 답변 예시/팁 (placeholder)
+}
+
+export type InterviewAnswers = Record<string, string>; // questionId → answer
+
+/**
+ * 원고 단락 톤 조정 옵션 (Step 4의 단락별 재생성).
+ */
+export type ParagraphTone = 'punchy' | 'calm' | 'expand' | 'shrink';
+
+export type WizardStep = 1 | 2 | 3 | 3.5 | 4;
 
 export type Period = "all" | "6m" | "1y" | "3m" | "1m" | "1w";
 export type ChannelSize = "all" | "small" | "medium" | "large";
