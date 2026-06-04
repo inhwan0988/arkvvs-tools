@@ -45,6 +45,19 @@ const RULES: Rule[] = [
     },
   },
   {
+    match: /credit balance is too low|purchase credits|Plans & Billing|low balance|out of credits/i,
+    hint: {
+      title: "Anthropic 잔액(credits) 부족",
+      hint: "카드 등록만으로는 부족해요. Anthropic은 prepaid credits 방식이라 'Buy credits' 또는 'Auto reload'를 명시적으로 켜야 사용 가능합니다. 결제하셨는데 동작 안 하면 console에서 credits 잔액을 확인해주세요.",
+      actions: [
+        {
+          label: "Anthropic credits 구매",
+          href: "https://console.anthropic.com/settings/billing",
+        },
+      ],
+    },
+  },
+  {
     match: /insufficient_quota|429|rate.limit|quota/i,
     hint: {
       title: "API 사용량 한도 초과",
