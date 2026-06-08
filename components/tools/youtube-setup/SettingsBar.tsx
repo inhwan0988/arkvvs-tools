@@ -27,6 +27,7 @@ export default function SettingsBar({
 }: Props) {
   const [show, setShow] = useState(false);
   const [guide, setGuide] = useState<GuideType | null>(null);
+  const [mobileKeysOpen, setMobileKeysOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(`apiKey_${provider}`);
@@ -90,10 +91,29 @@ export default function SettingsBar({
                 ?
               </button>
             </div>
+            <button
+              onClick={() => setMobileKeysOpen(true)}
+              className="md:hidden flex items-center gap-1.5 rounded-lg bg-chip px-3 py-2 text-xs font-bold text-ink hover:bg-line shrink-0"
+              aria-label="API 키 설정"
+            >
+              <span className="text-base leading-none">⚙️</span>
+              <span>API 키</span>
+            </button>
           </div>
         </div>
       </header>
       <ApiKeyGuideModal type={guide} onClose={() => setGuide(null)} />
+      {mobileKeysOpen && (
+        <MobileKeysModal onClose={() => setMobileKeysOpen(false)}>
+          <MobileKeyField
+            label={provider === "claude" ? "Claude" : "OpenAI"}
+            placeholder={`${provider === "claude" ? "sk-ant-…" : "sk-…"} API Key`}
+            value={apiKey}
+            onChange={setApiKey}
+            onHelp={() => setGuide(provider)}
+          />
+        </MobileKeysModal>
+      )}
     </>
   );
 }
@@ -122,6 +142,91 @@ function Segmented({
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+function MobileKeysModal({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 md:hidden bg-black/50 flex items-end"
+      onClick={onClose}
+    >
+      <div
+        className="w-full bg-surface rounded-t-2xl p-5 pb-7 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold">API 키 설정</h2>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-mute hover:bg-chip"
+            aria-label="닫기"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="space-y-4">{children}</div>
+        <p className="mt-5 text-[11px] text-mute leading-relaxed">
+          키는 브라우저 localStorage에만 저장됩니다 (BYOK).
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MobileKeyField({
+  label,
+  placeholder,
+  value,
+  onChange,
+  onHelp,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  onHelp?: () => void;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-bold text-sub uppercase tracking-wider">
+          {label}
+        </label>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShow((s) => !s)}
+            className="text-[11px] text-mute hover:text-ink"
+          >
+            {show ? "숨김" : "표시"}
+          </button>
+          {onHelp && (
+            <button
+              onClick={onHelp}
+              className="h-6 w-6 flex items-center justify-center rounded-md text-xs font-bold text-mute hover:bg-line hover:text-ink"
+              aria-label={`${label} 키 발급 가이드`}
+              title={`${label} 키 발급 방법`}
+            >
+              ?
+            </button>
+          )}
+        </div>
+      </div>
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full text-sm px-3 py-3 rounded-xl bg-chip focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30 transition font-mono placeholder:text-mute"
+      />
     </div>
   );
 }

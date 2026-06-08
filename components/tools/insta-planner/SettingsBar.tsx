@@ -6,6 +6,7 @@ import { useWizard } from "./WizardContext";
 export default function SettingsBar() {
   const { anthropicApiKey, setAnthropicApiKey } = useWizard();
   const [show, setShow] = useState(false);
+  const [mobileKeysOpen, setMobileKeysOpen] = useState(false);
 
   useEffect(() => {
     const k = localStorage.getItem("apiKey_claude");
@@ -50,8 +51,97 @@ export default function SettingsBar() {
               {show ? "숨김" : "표시"}
             </button>
           </div>
+          <button
+            onClick={() => setMobileKeysOpen(true)}
+            className="sm:hidden flex items-center gap-1.5 rounded-lg bg-chip px-3 py-2 text-xs font-bold text-ink hover:bg-line"
+            aria-label="API 키 설정"
+          >
+            <span className="text-base leading-none">⚙️</span>
+            <span>API 키</span>
+          </button>
         </div>
       </div>
+      {mobileKeysOpen && (
+        <MobileKeysModal onClose={() => setMobileKeysOpen(false)}>
+          <MobileKeyField
+            label="Claude"
+            placeholder="sk-ant-…"
+            value={anthropicApiKey}
+            onChange={setAnthropicApiKey}
+          />
+        </MobileKeysModal>
+      )}
     </header>
+  );
+}
+
+function MobileKeysModal({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 sm:hidden bg-black/50 flex items-end"
+      onClick={onClose}
+    >
+      <div
+        className="w-full bg-surface rounded-t-2xl p-5 pb-7 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold">API 키 설정</h2>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-mute hover:bg-chip"
+            aria-label="닫기"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="space-y-4">{children}</div>
+        <p className="mt-5 text-[11px] text-mute leading-relaxed">
+          키는 브라우저 localStorage에만 저장됩니다 (BYOK).
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MobileKeyField({
+  label,
+  placeholder,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-bold text-sub uppercase tracking-wider">
+          {label}
+        </label>
+        <button
+          onClick={() => setShow((s) => !s)}
+          className="text-[11px] text-mute hover:text-ink"
+        >
+          {show ? "숨김" : "표시"}
+        </button>
+      </div>
+      <input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full text-sm px-3 py-3 rounded-xl bg-chip focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30 transition font-mono placeholder:text-mute"
+      />
+    </div>
   );
 }
