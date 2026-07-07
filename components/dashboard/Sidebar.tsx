@@ -78,7 +78,7 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 p-3 overflow-y-auto min-w-[16rem]">
-          <div className="flex items-center gap-1 mb-3">
+          <div className="flex items-center gap-1 mb-2">
             <Link
               href="/"
               className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold transition ${
@@ -92,6 +92,21 @@ export default function Sidebar({
             </Link>
             <SidebarToggleButton />
           </div>
+
+          <Link
+            href="/guides"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-bold mb-3 transition ${
+              pathname.startsWith("/guides")
+                ? "bg-brandSoft text-brand"
+                : "text-ink hover:bg-chip"
+            }`}
+          >
+            <span className="text-base">📖</span>
+            <span className="flex-1">이용방법</span>
+            <span className="text-[10px] font-bold text-danger bg-dangerSoft px-1.5 py-0.5 rounded">
+              NEW
+            </span>
+          </Link>
 
           {/* ━━━━━ 일반공개 섹션 ━━━━━ */}
           <div
