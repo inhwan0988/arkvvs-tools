@@ -112,63 +112,135 @@ export default async function PremiereAutoEditPage() {
       {/* 설치 안내 */}
       <section className="mb-12">
         <div className="rounded-xl3 border border-line bg-surface p-6 shadow-card">
-          <h2 className="text-lg font-bold text-ink mb-4">📋 설치 순서</h2>
+          <h2 className="text-lg font-bold text-ink mb-1">📋 설치 순서</h2>
+          <p className="text-xs text-mute mb-5">
+            처음 한 번만 하면 됩니다. 2단계 완료 후 아래 공통 단계로 이어서
+            진행하세요.
+          </p>
 
+          {/* STEP 1~2: OS별 다운로드 + 설치 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {/* Windows */}
-            <div>
+            <div className="rounded-xl2 bg-bg/60 p-4">
               <h3 className="text-sm font-bold text-ink mb-3">🪟 Windows</h3>
               <ol className="space-y-3 text-sm text-sub">
                 <Step n={1}>
                   위 <b>Windows</b> 버튼으로 exe 다운로드
                 </Step>
                 <Step n={2}>
-                  다운받은 파일 더블클릭 → 설치
+                  파일 더블클릭 → 설치
                   <span className="block text-xs text-mute mt-1">
-                    &ldquo;알 수 없는 게시자&rdquo; 경고 뜨면 → &ldquo;추가 정보 →
+                    &ldquo;알 수 없는 게시자&rdquo; 경고 → &ldquo;추가 정보 →
                     실행&rdquo;
                   </span>
-                </Step>
-                <Step n={3}>
-                  <b>Premiere Pro 재시작</b> (CEP 플러그인 인식용)
-                </Step>
-                <Step n={4}>
-                  바탕화면에서 <b>&ldquo;Ark Points Pro&rdquo;</b> 실행
                 </Step>
               </ol>
             </div>
 
             {/* Mac */}
-            <div>
+            <div className="rounded-xl2 bg-bg/60 p-4">
               <h3 className="text-sm font-bold text-ink mb-3">🍎 Mac</h3>
               <ol className="space-y-3 text-sm text-sub">
                 <Step n={1}>
                   위 <b>Mac</b> 버튼으로 dmg 다운로드 (본인 칩 확인)
                 </Step>
                 <Step n={2}>
-                  dmg 열고 → Applications 폴더로 드래그
+                  dmg 열고 → <b>Applications 폴더로 드래그</b>
                   <span className="block text-xs text-mute mt-1">
-                    &ldquo;확인되지 않은 개발자&rdquo; → 시스템 설정 &gt; 보안 &gt;
-                    &ldquo;확인 없이 열기&rdquo;
+                    &ldquo;확인되지 않은 개발자&rdquo; 뜨면 → 시스템 설정 &gt;
+                    개인정보 보호 및 보안 &gt; &ldquo;확인 없이 열기&rdquo;
                   </span>
-                </Step>
-                <Step n={3}>
-                  <b>Premiere Pro 재시작</b> (CEP 플러그인 인식용)
-                </Step>
-                <Step n={4}>
-                  Launchpad 또는 Applications에서 <b>Ark Points Pro</b> 실행
                 </Step>
               </ol>
             </div>
           </div>
 
-          <div className="mt-5 pt-4 border-t border-line">
-            <Step n={5}>
-              앱 내 <b>🤖 AI 설정</b> → Claude 또는 Gemini 선택 → API 키 입력
-              <span className="block text-xs text-mute mt-1">
-                키는 관리자에게 문의
+          {/* 공통 다음 단계 */}
+          <div className="mt-6 pt-6 border-t border-line">
+            <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-chip text-sub font-semibold">
+                공통
               </span>
-            </Step>
+              다음 단계
+            </h3>
+
+            <ol className="space-y-5">
+              <Step n={3}>
+                <b>Premiere Pro 완전 종료 후 재시작</b>
+                <span className="block text-xs text-mute mt-1">
+                  방금 설치한 CEP 플러그인(MCP Bridge)을 Premiere Pro가 인식하려면
+                  꼭 한 번 껐다 켜야 해요. (처음 한 번만)
+                </span>
+              </Step>
+
+              {/* 여기가 사람들이 가장 많이 막히는 지점 — 브랜드 컬러 박스로 강조 */}
+              <li className="flex gap-3">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-brand text-white text-[11px] font-bold flex items-center justify-center">
+                  4
+                </span>
+                <div className="flex-1 pt-0.5">
+                  <div className="text-sm text-ink font-semibold">
+                    Premiere Pro에서 <b>MCP Bridge 패널</b> 열기
+                  </div>
+
+                  <div className="mt-3 rounded-xl2 border border-brand/25 bg-brandSoft/50 p-4">
+                    <div className="text-xs font-semibold text-brand mb-2">
+                      상단 메뉴에서 순서대로 클릭
+                    </div>
+                    <div className="text-sm text-ink font-semibold leading-relaxed break-keep">
+                      창 <span className="text-mute mx-0.5">›</span> 확장 프로그램{" "}
+                      <span className="text-mute mx-0.5">›</span>{" "}
+                      <span className="text-brand">MCP Bridge</span>
+                    </div>
+                    <div className="text-[11px] text-sub mt-2">
+                      영문판: <span className="font-semibold">Window ›
+                      Extensions › MCP Bridge</span>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-brand/20">
+                      <div className="text-[11px] font-bold text-success mb-1">
+                        ✅ 성공 표시
+                      </div>
+                      <div className="text-[12px] text-sub leading-relaxed">
+                        패널이 열리고{" "}
+                        <span className="inline-flex items-center gap-1">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-success align-middle" />
+                          <span className="font-mono text-[11px] font-semibold text-ink">
+                            Running — polling ...
+                          </span>
+                        </span>{" "}
+                        이 보이면 연결 완료.
+                      </div>
+                      <div className="text-[11px] text-mute mt-1.5">
+                        패널은 창 옆에 도킹해두고, 작업이 끝날 때까지 <b>Stop
+                        Bridge</b>는 누르지 마세요.
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-brand/20 text-[11px] text-sub leading-relaxed">
+                      🚨 <b>MCP Bridge가 메뉴에 안 보이면?</b> Premiere Pro를
+                      완전히 종료(⌘Q / Alt+F4)했다가 다시 열어보세요. 3번 단계를
+                      건너뛴 경우가 대부분이에요.
+                    </div>
+                  </div>
+                </div>
+              </li>
+
+              <Step n={5}>
+                <b>Ark Points Pro</b> 앱 실행
+                <span className="block text-xs text-mute mt-1">
+                  Mac: Launchpad / Applications · Windows: 바탕화면 또는 시작
+                  메뉴
+                </span>
+              </Step>
+
+              <Step n={6}>
+                앱 내 <b>🤖 AI 설정</b> → Claude 또는 Gemini 선택 → API 키 입력
+                <span className="block text-xs text-mute mt-1">
+                  키가 없다면 관리자에게 문의하세요.
+                </span>
+              </Step>
+            </ol>
           </div>
         </div>
       </section>
