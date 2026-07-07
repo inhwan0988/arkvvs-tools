@@ -1,34 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CATEGORY_ORDER,
   CATEGORY_META,
+  TOOLS,
   type Tool,
+  type Category,
 } from "@/lib/tools/registry";
 
-type ToolWithVideoId = Tool & { _videoId: string | null };
+type ToolWithVideoId = Tool & { _videoId: string };
 
 export default function GuidesGrid({
-  groupedFree,
-  groupedPremium,
   isPremium,
 }: {
-  groupedFree: Record<string, Tool[]>;
-  groupedPremium: Record<string, Tool[]>;
   isPremium: boolean;
 }) {
   const [activeTool, setActiveTool] = useState<ToolWithVideoId | null>(null);
 
-  // ESC 키로 모달 닫기
+  // ESC / body scroll lock
   useEffect(() => {
     if (!activeTool) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActiveTool(null);
     };
     window.addEventListener("keydown", onKey);
-    // WHY: 모달 열려있는 동안 body 스크롤 잠금
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -37,43 +34,78 @@ export default function GuidesGrid({
     };
   }, [activeTool]);
 
+  // videoId 있는 툴만 필터, 첫 번째는 히어로
+  const withVideo = useMemo(() => {
+    return TOOLS.map((t) => ({
+      tool: t,
+      videoId: t.guideVideoUrl ? extractYouTubeId(t.guideVideoUrl) : null,
+    })).filter((x): x is { tool: Tool; videoId: string } => Boolean(x.videoId));
+  }, []);
+
+  const hero = withVideo[0] ?? null;
+  const rest = withVideo.slice(1);
+
+  // 카테고리별 그룹화 (히어로 제외, 나머지 영상 없는 툴 포함해서 "준비중" 표시)
+  const grouped = useMemo(() => {
+    const map = {} as Record<Category, { tool: Tool; videoId: string | null }[]>;
+    for (const c of CATEGORY_ORDER) map[c] = [];
+    for (const tool of TOOLS) {
+      if (hero && tool.slug === hero.tool.slug) continue;
+      const videoId = tool.guideVideoUrl ? extractYouTubeId(tool.guideVideoUrl) : null;
+      map[tool.category].push({ tool, videoId });
+    }
+    return map;
+  }, [hero]);
+
+  const openTool = (tool: Tool, videoId: string) => {
+    setActiveTool({ ...tool, _videoId: videoId });
+  };
+
   return (
     <>
-      <CategorySection
-        grouped={groupedFree}
-        variant="free"
-        onOpen={setActiveTool}
-      />
+      {/* ━━━━━ 히어로 ━━━━━ */}
+      {hero && (
+        <HeroBanner
+          tool={hero.tool}
+          videoId={hero.videoId}
+          onPlay={() => openTool(hero.tool, hero.videoId)}
+        />
+      )}
 
-      <div className="mt-14 sm:mt-16 mb-8 sm:mb-10 relative">
-        <div className="absolute inset-0 flex items-center" aria-hidden>
-          <div className="w-full border-t border-line" />
-        </div>
-        <div className="relative flex items-center justify-center">
-          <span className="bg-bg px-5 inline-flex items-center gap-2.5">
-            <span className="text-2xl">⭐</span>
-            <span className="text-lg sm:text-xl font-bold text-premium tracking-tight">
-              회원전용
-            </span>
-            {isPremium ? (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-premiumSoft text-premium">
-                MY ACCESS
-              </span>
-            ) : (
-              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-chip text-mute">
-                LOCKED
-              </span>
-            )}
-          </span>
-        </div>
+      {/* ━━━━━ 카테고리별 섹션 ━━━━━ */}
+      <div className="mt-12 sm:mt-16 space-y-12 sm:space-y-16">
+        {CATEGORY_ORDER.map((category) => {
+          const items = grouped[category];
+          if (items.length === 0) return null;
+          const meta = CATEGORY_META[category];
+
+          return (
+            <section key={category}>
+              <div className="flex items-baseline gap-3 mb-5 sm:mb-6">
+                <span className="text-2xl sm:text-3xl">{meta.emoji}</span>
+                <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+                  {category}
+                </h2>
+                <span className="text-[13px] text-mute font-medium">
+                  {meta.description}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                {items.map(({ tool, videoId }) => (
+                  <GuideCard
+                    key={tool.slug}
+                    tool={tool}
+                    videoId={videoId}
+                    locked={Boolean(tool.membersOnly) && !isPremium}
+                    onPlay={openTool}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
-
-      <CategorySection
-        grouped={groupedPremium}
-        variant="premium"
-        locked={!isPremium}
-        onOpen={setActiveTool}
-      />
 
       {activeTool && (
         <VideoModal tool={activeTool} onClose={() => setActiveTool(null)} />
@@ -82,197 +114,192 @@ export default function GuidesGrid({
   );
 }
 
-function CategorySection({
-  grouped,
-  variant,
-  locked = false,
-  onOpen,
+/* ─────────────────────────────────────────────── */
+/* Hero Banner — 다크 톤 큰 배너 */
+/* ─────────────────────────────────────────────── */
+function HeroBanner({
+  tool,
+  videoId,
+  onPlay,
 }: {
-  grouped: Record<string, Tool[]>;
-  variant: "free" | "premium";
-  locked?: boolean;
-  onOpen: (tool: ToolWithVideoId) => void;
+  tool: Tool;
+  videoId: string;
+  onPlay: () => void;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 sm:gap-6">
-      {CATEGORY_ORDER.map((category, idx) => {
-        const tools = grouped[category] ?? [];
-        const meta = CATEGORY_META[category];
-        const isPremiumCol = variant === "premium";
-        return (
-          <div
-            key={`${variant}-${category}`}
-            className={`flex flex-col rounded-xl3 border p-5 sm:p-6 shadow-card ${
-              isPremiumCol
-                ? "border-premium/30 bg-premiumSoft/40"
-                : "border-line bg-surface"
-            }`}
-          >
-            <div className="mb-5">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <span className="text-3xl sm:text-[32px] leading-none">
-                  {meta.emoji}
-                </span>
-                <h2 className="text-xl sm:text-[22px] font-bold text-ink tracking-tight">
-                  {category}
-                </h2>
-                <span
-                  className={`ml-auto text-[11px] sm:text-xs font-bold px-2 py-0.5 rounded-md ${
-                    isPremiumCol
-                      ? "text-premium bg-premiumSoft"
-                      : "text-mute bg-chip"
-                  }`}
-                >
-                  STEP {idx + 1}
-                </span>
-              </div>
-              <p className="text-sm sm:text-[15px] text-mute leading-relaxed">
-                {meta.description}
-              </p>
-            </div>
+    <div className="relative rounded-xl3 overflow-hidden shadow-pop group cursor-pointer bg-ink" onClick={onPlay}>
+      {/* 배경 썸네일 */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-80 transition-opacity"
+      />
+      <div className="absolute inset-0 bg-gradient-to-tr from-ink via-ink/70 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/40 to-transparent" />
 
-            <div className="flex flex-col gap-3 flex-1">
-              {tools.length === 0 ? (
-                <EmptyCategory premium={isPremiumCol} />
-              ) : (
-                tools.map((tool) => (
-                  <GuideCard
-                    key={tool.slug}
-                    tool={tool}
-                    locked={locked && Boolean(tool.membersOnly)}
-                    onOpen={onOpen}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-        );
-      })}
+      <div className="relative p-6 sm:p-10 lg:p-12 aspect-[16/7] sm:aspect-[16/6] lg:aspect-[16/5] flex flex-col justify-end">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-md bg-danger text-white shadow-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            NEW
+          </span>
+          <span className="text-[11px] font-bold text-white/80 tracking-wider uppercase">
+            추천 영상
+          </span>
+        </div>
+
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight leading-tight max-w-2xl">
+          {tool.emoji} {tool.name}
+        </h2>
+        <p className="mt-2 sm:mt-3 text-sm sm:text-base text-white/85 leading-relaxed max-w-2xl line-clamp-2">
+          {tool.description}
+        </p>
+
+        <div className="mt-5 sm:mt-6 flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPlay();
+            }}
+            className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-white text-ink text-sm sm:text-base font-bold hover:bg-white/90 shadow-lg transition"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 text-danger" fill="currentColor" aria-hidden>
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            영상 재생
+          </button>
+          <Link
+            href={tool.href}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-white/10 backdrop-blur text-white text-sm sm:text-base font-bold hover:bg-white/20 border border-white/20 transition"
+          >
+            도구 열기 →
+          </Link>
+        </div>
+      </div>
+
+      {/* 우측 상단 재생 아이콘 (큰 화면) */}
+      <div className="hidden lg:flex absolute top-1/2 right-12 -translate-y-1/2 w-20 h-20 rounded-full bg-white/95 items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+        <svg viewBox="0 0 24 24" className="w-8 h-8 text-danger ml-1" fill="currentColor" aria-hidden>
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </div>
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────── */
+/* Guide Card — 큰 16:9 썸네일 */
+/* ─────────────────────────────────────────────── */
 function GuideCard({
   tool,
+  videoId,
   locked,
-  onOpen,
+  onPlay,
 }: {
   tool: Tool;
+  videoId: string | null;
   locked: boolean;
-  onOpen: (tool: ToolWithVideoId) => void;
+  onPlay: (tool: Tool, videoId: string) => void;
 }) {
-  const videoId = tool.guideVideoUrl ? extractYouTubeId(tool.guideVideoUrl) : null;
   const hasVideo = Boolean(videoId) && !locked;
   const isPremium = Boolean(tool.membersOnly);
 
   return (
     <div
-      className={`relative rounded-xl2 shadow-card border overflow-hidden flex flex-col bg-surface transition ${
-        isPremium ? "border-premium/30" : "border-line"
-      } ${
-        hasVideo
-          ? isPremium
-            ? "hover:shadow-pop hover:-translate-y-0.5 hover:border-premium cursor-pointer"
-            : "hover:shadow-pop hover:-translate-y-0.5 hover:border-lineStrong cursor-pointer"
-          : "opacity-70"
+      className={`group relative rounded-xl2 overflow-hidden bg-surface transition ${
+        hasVideo ? "cursor-pointer hover:-translate-y-1" : "opacity-75"
       }`}
-      onClick={() => hasVideo && videoId && onOpen({ ...tool, _videoId: videoId })}
+      onClick={() => hasVideo && videoId && onPlay(tool, videoId)}
       role={hasVideo ? "button" : undefined}
       tabIndex={hasVideo ? 0 : undefined}
       onKeyDown={(e) => {
         if (hasVideo && videoId && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
-          onOpen({ ...tool, _videoId: videoId });
+          onPlay(tool, videoId);
         }
       }}
     >
-      {/* 썸네일 영역 */}
-      <div
-        className={`relative aspect-video ${
-          hasVideo ? "bg-black" : `${tool.color}`
-        } flex items-center justify-center`}
-      >
-        {hasVideo && videoId ? (
+      {/* 16:9 썸네일 (크게) */}
+      <div className="relative aspect-video bg-ink overflow-hidden rounded-xl2">
+        {videoId ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition" />
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/95 shadow-pop flex items-center justify-center">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-6 h-6 sm:w-7 sm:h-7 text-danger ml-1"
-                fill="currentColor"
-                aria-hidden
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
+            {/* 어둡게 오버레이 */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            {/* 재생 아이콘 */}
+            <div className={`absolute inset-0 flex items-center justify-center ${locked ? "opacity-30" : ""}`}>
+              <div className="w-16 h-16 rounded-full bg-white/95 shadow-pop flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg viewBox="0 0 24 24" className="w-7 h-7 text-danger ml-1" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
             </div>
+            {/* 잠금/회원전용 배지 (좌상단) */}
+            {locked && (
+              <div className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-black/70 text-white">
+                🔒 회원전용
+              </div>
+            )}
+            {!locked && isPremium && (
+              <div className="absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-premium text-white">
+                ⭐ 회원전용
+              </div>
+            )}
           </>
         ) : (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-4xl sm:text-5xl">{tool.emoji}</span>
-            <span className="text-[11px] font-bold text-mute bg-white/70 px-2 py-0.5 rounded-md">
-              {locked ? "🔒 회원전용" : "🎬 준비중"}
+          <div className={`absolute inset-0 flex flex-col items-center justify-center gap-3 ${tool.color}`}>
+            <span className="text-5xl sm:text-6xl">{tool.emoji}</span>
+            <span className="text-[12px] font-bold text-sub bg-white/80 px-3 py-1 rounded-md">
+              🎬 준비중
             </span>
           </div>
         )}
       </div>
 
       {/* 본문 */}
-      <div className="p-4 sm:p-5 flex flex-col flex-1">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-base sm:text-lg">{tool.emoji}</span>
-          <h3 className="text-base sm:text-[17px] font-bold text-ink tracking-tight leading-snug">
-            {tool.name}
-          </h3>
+      <div className="pt-4 px-1">
+        <div className="flex items-start gap-2.5">
+          <span className="text-2xl leading-none shrink-0 mt-0.5">
+            {tool.emoji}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[15px] sm:text-base font-bold text-ink tracking-tight leading-snug mb-1">
+              {tool.name}
+            </h3>
+            <p className="text-[13px] text-sub leading-relaxed line-clamp-2 font-medium">
+              {tool.description}
+            </p>
+          </div>
         </div>
-        <p className="text-[13px] sm:text-sm text-sub leading-relaxed line-clamp-2 font-medium mb-3">
-          {tool.description}
-        </p>
 
-        <div className="mt-auto flex items-center gap-1.5 flex-wrap">
-          {isPremium && (
-            <span className="text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-premiumSoft text-premium">
-              {locked ? "🔒 회원전용" : "⭐ 회원전용"}
-            </span>
-          )}
-          {hasVideo ? (
-            <span
-              className={`ml-auto text-sm font-bold ${
-                isPremium ? "text-premium" : "text-brand"
-              }`}
+        {hasVideo && videoId && (
+          <div className="mt-3 flex items-center gap-2">
+            <Link
+              href={tool.href}
+              onClick={(e) => e.stopPropagation()}
+              className="text-[12px] font-bold text-mute hover:text-ink transition"
             >
-              영상 보기 →
-            </span>
-          ) : (
-            <span className="ml-auto text-[12px] font-bold text-mute">
-              곧 업로드 예정
-            </span>
-          )}
-        </div>
-
-        {hasVideo && (
-          <Link
-            href={tool.href}
-            target={tool.external ? "_blank" : undefined}
-            rel={tool.external ? "noopener noreferrer" : undefined}
-            onClick={(e) => e.stopPropagation()}
-            className="mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-line text-[13px] font-bold text-sub hover:bg-chip hover:text-ink transition"
-          >
-            도구 바로가기
-            <span className="text-mute">→</span>
-          </Link>
+              도구 바로가기 →
+            </Link>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
+/* ─────────────────────────────────────────────── */
+/* Video Modal — 가로 큰 유튜브 임베드 */
+/* ─────────────────────────────────────────────── */
 function VideoModal({
   tool,
   onClose,
@@ -281,47 +308,28 @@ function VideoModal({
   onClose: () => void;
 }) {
   const videoId = tool._videoId;
-  if (!videoId) return null;
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
+      className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`${tool.name} 이용방법`}
     >
       <div
-        className="relative w-full max-w-4xl bg-surface rounded-xl3 shadow-pop overflow-hidden"
+        className="relative w-full max-w-6xl bg-ink rounded-xl3 shadow-pop overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-line">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl sm:text-2xl">{tool.emoji}</span>
-            <div className="min-w-0">
-              <h3 className="text-base sm:text-lg font-bold text-ink tracking-tight truncate">
-                {tool.name} · 이용방법
-              </h3>
-              <p className="text-[12px] sm:text-sm text-mute truncate">
-                {tool.description}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="ml-3 shrink-0 w-9 h-9 rounded-lg hover:bg-chip flex items-center justify-center text-mute hover:text-ink transition"
-            aria-label="닫기"
-          >
-            <svg
-              className="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
+        {/* 닫기 (모달 우상단 플로팅) */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur flex items-center justify-center text-white transition"
+          aria-label="닫기"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
 
         <div className="relative aspect-video bg-black">
           <iframe
@@ -333,24 +341,28 @@ function VideoModal({
           />
         </div>
 
-        <div className="px-5 sm:px-6 py-4 border-t border-line flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-[13px] font-bold text-sub hover:bg-chip transition"
-          >
-            닫기
-          </button>
+        {/* 하단 정보 바 */}
+        <div className="px-5 sm:px-7 py-4 sm:py-5 flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">{tool.emoji}</span>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+                {tool.name}
+              </h3>
+            </div>
+            <p className="text-[12px] sm:text-sm text-white/60 line-clamp-1">
+              {tool.description}
+            </p>
+          </div>
           <Link
             href={tool.href}
-            target={tool.external ? "_blank" : undefined}
-            rel={tool.external ? "noopener noreferrer" : undefined}
-            className={`px-4 py-2 rounded-lg text-[13px] font-bold text-white transition ${
+            className={`shrink-0 px-4 sm:px-5 py-2.5 rounded-lg text-[13px] sm:text-sm font-bold text-white transition ${
               tool.membersOnly
-                ? "bg-premium hover:bg-premium/90"
-                : "bg-brand hover:bg-brand/90"
+                ? "bg-premium hover:bg-premiumHover"
+                : "bg-brand hover:bg-brandHover"
             }`}
           >
-            도구 바로가기 →
+            도구 열기 →
           </Link>
         </div>
       </div>
@@ -358,21 +370,9 @@ function VideoModal({
   );
 }
 
-function EmptyCategory({ premium = false }: { premium?: boolean }) {
-  return (
-    <div
-      className={`flex-1 rounded-xl2 border-2 border-dashed p-6 flex items-center justify-center min-h-[180px] ${
-        premium ? "border-premium/30" : "border-line"
-      }`}
-    >
-      <p className="text-sm font-medium text-mute text-center">
-        곧 도구가 추가됩니다
-      </p>
-    </div>
-  );
-}
-
-// WHY: youtu.be, youtube.com/watch, /shorts, /embed 다양한 포맷 지원
+/* ─────────────────────────────────────────────── */
+/* YouTube URL parser */
+/* ─────────────────────────────────────────────── */
 function extractYouTubeId(url: string): string | null {
   try {
     const u = new URL(url.trim());
