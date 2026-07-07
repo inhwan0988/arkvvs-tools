@@ -40,6 +40,7 @@ export type Tool = {
   category: Category;
   external?: boolean; // 외부 링크면 true (새 탭으로 열림)
   membersOnly?: boolean; // true면 회원전용 (premium tier만 접근 가능)
+  guideVideoUrl?: string; // 이용방법 유튜브 URL — /guides 페이지에서 노출
 };
 
 export const TOOLS: Tool[] = [
@@ -53,6 +54,7 @@ export const TOOLS: Tool[] = [
     status: "live",
     color: "bg-dangerSoft",
     category: "기획",
+    guideVideoUrl: "https://youtu.be/ZyRRVMfL6mM",
   },
 
   // ━━━ 편집 ━━━
