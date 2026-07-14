@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import ErrorWithHint from "@/components/ErrorWithHint";
 import {
   PLATFORM_META,
@@ -249,16 +250,21 @@ export default function SpreadPage() {
   return (
     <div className="min-h-full bg-bg">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-5">
-        <header>
-          <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">
-            Spread
-            <span className="ml-2 text-[11px] px-2 py-0.5 bg-premium/20 text-premium rounded font-bold align-middle">
-              BETA
-            </span>
-          </h1>
-          <p className="text-sm text-sub mt-1.5">
-            한 번 작성 → Instagram · Facebook · Threads 동시 게시 · 자동 비율 변환
-          </p>
+        <header className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+              Spread
+            </h1>
+            <p className="text-sm text-sub mt-1.5">
+              한 번 작성 → Instagram · Facebook · Threads 동시 게시 · 자동 비율 변환
+            </p>
+          </div>
+          <Link
+            href="/tools/spread/bulk"
+            className="shrink-0 text-[12px] rounded-lg bg-brandSoft text-brand font-bold px-3 py-1.5 hover:bg-brand hover:text-white transition"
+          >
+            📥 CSV 벌크 업로드
+          </Link>
         </header>
 
         {info && (

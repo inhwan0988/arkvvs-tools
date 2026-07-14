@@ -22,6 +22,8 @@ const PUBLIC_PATHS = [
   // Vercel cron — Bearer auth로 보호됨
   "/api/tools/sns-tracker/cron/",
   "/api/tools/spread/cron/",
+  // Ark Clipper 다운로드 페이지 — Electron 앱의 업데이트 알림에서 브라우저로 열림. 로그인 없이 접근 가능해야 함
+  "/tools/ark-clipper",
 ];
 
 export async function updateSession(request: NextRequest) {

@@ -143,7 +143,7 @@ export const TOOLS: Tool[] = [
     description: "한 번 작성 → Instagram / Facebook / Threads 동시 게시 (자동 비율 변환 + 예약)",
     emoji: "📢",
     href: "/tools/spread",
-    status: "beta",
+    status: "live",
     color: "bg-premiumSoft",
     category: "콘텐츠 활용",
     membersOnly: true,
