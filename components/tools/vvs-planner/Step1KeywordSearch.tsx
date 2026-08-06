@@ -4,7 +4,6 @@ import { useState } from "react";
 import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import VideoCard from "./VideoCard";
-import ChannelProfileCard from "./ChannelProfileCard";
 import ReferenceVideosInput from "./ReferenceVideosInput";
 import SessionHistory from "./SessionHistory";
 import type {
@@ -225,7 +224,6 @@ export default function Step1KeywordSearch() {
   return (
     <div>
       <SessionHistory onPick={pickSession} />
-      <ChannelProfileCard />
       <ReferenceVideosInput />
       <div className="flex gap-2">
         <input
@@ -261,20 +259,20 @@ export default function Step1KeywordSearch() {
         </div>
 
         {/* 기본 필터 (가장 자주 쓰는 4가지) */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <FilterRow
             label="영상 형식"
             options={FORMAT_OPTS}
             value={filters.videoFormat}
             onChange={(v) => setVideoFormat(v)}
           />
-          <FilterRow
+          <SliderFilterRow
             label="기간"
             options={PERIOD_OPTS}
             value={filters.period}
             onChange={(v) => setPeriod(v)}
           />
-          <FilterRow
+          <SliderFilterRow
             label="VVS 최소"
             options={VVS_OPTS}
             value={filters.minVvs ?? 0}
@@ -317,15 +315,15 @@ export default function Step1KeywordSearch() {
         </div>
 
         {showAdvanced && (
-          <div className="mt-3 space-y-3 pt-3 border-t border-dashed border-line">
-            <FilterRow
+          <div className="mt-3 space-y-4 pt-3 border-t border-dashed border-line">
+            <SliderFilterRow
               label="참여율 최소"
               options={ENGAGEMENT_OPTS}
               value={filters.minEngagementRate ?? 0}
               onChange={(v) => setMinEngagementRate(v)}
               tooltip="(좋아요 + 댓글) / 조회수. 높을수록 시청자 반응이 활발한 영상."
             />
-            <FilterRow
+            <SliderFilterRow
               label="영상 길이"
               options={DURATION_OPTS}
               value={filters.durationRange ?? "any"}
@@ -337,13 +335,13 @@ export default function Step1KeywordSearch() {
               value={filters.channelSize}
               onChange={(v) => setChannelSize(v)}
             />
-            <FilterRow
+            <SliderFilterRow
               label="절대 조회수"
               options={MIN_VIEWS_OPTS}
               value={filters.minViews}
               onChange={(v) => setMinViews(v)}
             />
-            <FilterRow
+            <SliderFilterRow
               label="결과 개수"
               options={MAX_RESULTS_OPTS}
               value={filters.maxResults ?? 30}
@@ -487,6 +485,76 @@ function FilterRow<T extends string | number>({
             {o.label}
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 이산 값(정해진 옵션 목록)을 슬라이더로 조절. index 기반으로 매핑.
+ */
+function SliderFilterRow<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+  tooltip,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  tooltip?: string;
+}) {
+  const idx = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
+  const current = options[idx];
+  const max = options.length - 1;
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <div className="w-full sm:w-24 shrink-0 flex items-center gap-1">
+        <p className="text-xs font-bold text-sub">{label}</p>
+        {tooltip && (
+          <span
+            title={tooltip}
+            className="text-[10px] text-mute cursor-help select-none"
+          >
+            ⓘ
+          </span>
+        )}
+      </div>
+      <div className="flex-1 flex items-center gap-3 min-w-0">
+        <div className="flex-1 min-w-0">
+          <input
+            type="range"
+            min={0}
+            max={max}
+            step={1}
+            value={idx}
+            onChange={(e) =>
+              onChange(options[Number(e.target.value)].value)
+            }
+            className="w-full h-1.5 accent-brand cursor-pointer"
+            aria-label={label}
+          />
+          <div className="mt-1 flex justify-between text-[10px] text-mute select-none">
+            {options.map((o, i) => (
+              <span
+                key={String(o.value)}
+                className={`transition ${
+                  i === idx ? "font-bold text-brand" : ""
+                }`}
+              >
+                |
+              </span>
+            ))}
+          </div>
+        </div>
+        <span className="shrink-0 min-w-[72px] text-right rounded-md bg-brandSoft px-2 py-1 text-[11px] font-bold text-brand">
+          {current?.label}
+        </span>
       </div>
     </div>
   );
