@@ -1,18 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import SelectedVideoBanner from "./SelectedVideoBanner";
 import type { InterviewQuestion } from "@/lib/tools/vvs-planner/types";
 
 /**
- * Step 3.5 — Claude가 단답형 질문을 던지고 사용자가 답하는 인터뷰 모드.
- *
- * 흐름:
- * 1. mount 시 자동으로 /interview-questions API 호출 → 5-8개 질문 받음
- * 2. 카드 1장씩 진행 (다음 버튼)
- * 3. 마지막 답 완료 → Step 4 자동 이동 + 원고 생성 트리거
+ * Step 3.5 — Claude가 단답형 질문 5~8개를 생성 → 사용자가 한 화면에서 원하는 것만 답하고 원고 생성.
  */
 export default function Step35Interview() {
   const {
@@ -34,7 +29,6 @@ export default function Step35Interview() {
     interviewQuestions.length > 0 ? "answering" : "loading",
   );
   const [error, setError] = useState<string | null>(null);
-  const [currentIdx, setCurrentIdx] = useState(0);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
@@ -91,33 +85,25 @@ export default function Step35Interview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic, selectedVideo, transcript]);
 
-  const total = interviewQuestions.length;
-  const currentQ = interviewQuestions[currentIdx];
-  const currentAnswer = currentQ ? interviewAnswers[currentQ.id] || "" : "";
-
   const setAnswer = useCallback(
-    (val: string) => {
-      if (!currentQ) return;
-      setInterviewAnswers({ ...interviewAnswers, [currentQ.id]: val });
+    (id: string, val: string) => {
+      setInterviewAnswers({ ...interviewAnswers, [id]: val });
     },
-    [currentQ, interviewAnswers, setInterviewAnswers],
+    [interviewAnswers, setInterviewAnswers],
   );
 
-  const goNext = useCallback(() => {
-    if (currentIdx < total - 1) {
-      setCurrentIdx(currentIdx + 1);
-      return;
-    }
-    // 마지막 질문 — Step 4로 + 원고 새로 시작하도록 reset
-    setScript("");
-    goToStep(4);
-  }, [currentIdx, total, goToStep, setScript]);
+  const answeredCount = useMemo(
+    () =>
+      interviewQuestions.reduce(
+        (acc, q) => acc + ((interviewAnswers[q.id] || "").trim() ? 1 : 0),
+        0,
+      ),
+    [interviewQuestions, interviewAnswers],
+  );
 
-  const goPrev = useCallback(() => {
-    if (currentIdx > 0) setCurrentIdx(currentIdx - 1);
-  }, [currentIdx]);
+  const total = interviewQuestions.length;
 
-  const skipAll = useCallback(() => {
+  const submit = useCallback(() => {
     setScript("");
     goToStep(4);
   }, [goToStep, setScript]);
@@ -136,7 +122,7 @@ export default function Step35Interview() {
     );
   }
 
-  if (phase === "error" || !currentQ) {
+  if (phase === "error" || total === 0) {
     return (
       <div className="mx-auto max-w-md">
         {error && (
@@ -155,7 +141,7 @@ export default function Step35Interview() {
             ← 주제 선택
           </button>
           <button
-            onClick={skipAll}
+            onClick={submit}
             className="rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brandHover"
           >
             질문 건너뛰고 원고 생성 →
@@ -175,7 +161,7 @@ export default function Step35Interview() {
             인터뷰 — 원고 퀄리티를 위한 단답형 답변
           </h2>
           <p className="mt-0.5 text-sm text-sub">
-            본인 입으로 답해주시면 AI가 그대로 원고에 녹여드려요.
+            답할 수 있는 것만 채워주세요. 빈 답변은 무시됩니다.
           </p>
         </div>
         <button
@@ -186,106 +172,108 @@ export default function Step35Interview() {
         </button>
       </div>
 
-      {/* 진행바 */}
+      {/* 진행바: 답변한 개수 */}
       <div className="flex items-center gap-3">
         <div className="text-xs font-bold text-sub whitespace-nowrap">
-          {currentIdx + 1} / {total}
+          {answeredCount} / {total} 답변 완료
         </div>
         <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-chip">
           <div
             className="h-full bg-brand transition-[width] duration-300"
-            style={{ width: `${((currentIdx + 1) / total) * 100}%` }}
+            style={{ width: `${total ? (answeredCount / total) * 100 : 0}%` }}
           />
         </div>
         <button
-          onClick={skipAll}
+          onClick={submit}
           className="text-xs text-mute hover:text-ink whitespace-nowrap"
         >
           모두 건너뛰기
         </button>
       </div>
 
-      {/* 질문 카드 (한 화면에 한 질문) */}
-      <div className="rounded-2xl border border-line bg-surface p-6 shadow-card">
-        <p className="text-xs font-bold text-brand uppercase tracking-wider mb-2">
-          질문 {currentIdx + 1}
-        </p>
-        <h3 className="text-base font-bold text-ink leading-relaxed">
-          {currentQ.text}
-        </h3>
-        {currentQ.hint && (
-          <p className="mt-2 text-xs text-mute">{currentQ.hint}</p>
-        )}
+      {/* 질문 카드 목록 — 한 화면에 전체 노출 */}
+      <div className="space-y-3">
+        {interviewQuestions.map((q, i) => {
+          const answer = interviewAnswers[q.id] || "";
+          const isAnswered = !!answer.trim();
+          return (
+            <div
+              key={q.id}
+              className={`rounded-2xl border bg-surface p-5 shadow-card transition ${
+                isAnswered ? "border-brand/40" : "border-line"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-brand uppercase tracking-wider mb-1.5">
+                    질문 {i + 1}
+                  </p>
+                  <h3 className="text-[15px] font-bold text-ink leading-relaxed">
+                    {q.text}
+                  </h3>
+                  {q.hint && (
+                    <p className="mt-1.5 text-xs text-mute">{q.hint}</p>
+                  )}
+                </div>
+                {isAnswered && (
+                  <span className="shrink-0 rounded-full bg-brandSoft px-2 py-0.5 text-[11px] font-bold text-brand">
+                    ✓
+                  </span>
+                )}
+              </div>
 
-        <div className="mt-4">
-          {currentQ.type === "chips" && currentQ.options ? (
-            <div className="flex flex-wrap gap-2">
-              {currentQ.options.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setAnswer(opt)}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                    currentAnswer === opt
-                      ? "bg-brand text-white"
-                      : "bg-chip text-sub hover:bg-line hover:text-ink"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
+              <div className="mt-3">
+                {q.type === "chips" && q.options ? (
+                  <div className="flex flex-wrap gap-2">
+                    {q.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => setAnswer(q.id, opt)}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                          answer === opt
+                            ? "bg-brand text-white"
+                            : "bg-chip text-sub hover:bg-line hover:text-ink"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <textarea
+                    value={answer}
+                    onChange={(e) => setAnswer(q.id, e.target.value)}
+                    placeholder="답변을 자유롭게 적어주세요 (선택)"
+                    maxLength={200}
+                    rows={2}
+                    className="w-full resize-none rounded-xl border border-line bg-bg px-4 py-3 text-[15px] text-ink placeholder:text-mute focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  />
+                )}
+              </div>
+
+              {q.type === "short_text" && (
+                <div className="mt-1 text-right text-[11px] text-mute">
+                  {answer.length} / 200자
+                </div>
+              )}
             </div>
-          ) : (
-            <input
-              type="text"
-              value={currentAnswer}
-              onChange={(e) => setAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && currentAnswer.trim()) goNext();
-              }}
-              placeholder="30자 이내로 답해주세요"
-              maxLength={80}
-              className="w-full rounded-xl border border-line bg-bg px-4 py-3 text-base text-ink placeholder:text-mute focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-              autoFocus
-            />
-          )}
-        </div>
-
-        <div className="mt-2 flex items-center justify-between text-[11px]">
-          <span className="text-mute">
-            {currentQ.type === "short_text"
-              ? `${currentAnswer.length}자`
-              : currentAnswer
-                ? "선택됨"
-                : ""}
-          </span>
-          <span className="text-mute">Enter로 다음 질문</span>
-        </div>
+          );
+        })}
       </div>
 
-      {/* 네비게이션 */}
-      <div className="flex items-center justify-between">
+      {/* 하단 CTA */}
+      <div className="sticky bottom-4 flex items-center justify-between rounded-2xl border border-line bg-surface/90 px-5 py-3 shadow-pop backdrop-blur">
+        <span className="text-xs text-sub">
+          {answeredCount === 0
+            ? "답변 없이 바로 원고를 생성할 수도 있어요"
+            : `${answeredCount}개의 답변이 원고에 반영됩니다`}
+        </span>
         <button
-          onClick={goPrev}
-          disabled={currentIdx === 0}
-          className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink hover:bg-chip disabled:opacity-30 disabled:cursor-not-allowed"
+          onClick={submit}
+          className="rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brandHover"
         >
-          ← 이전
+          원고 생성 →
         </button>
-        <div className="flex gap-2">
-          <button
-            onClick={goNext}
-            className="rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-sub hover:bg-chip"
-          >
-            건너뛰기
-          </button>
-          <button
-            onClick={goNext}
-            disabled={!currentAnswer.trim()}
-            className="rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white hover:bg-brandHover disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {currentIdx === total - 1 ? "원고 생성 →" : "다음 →"}
-          </button>
-        </div>
       </div>
     </div>
   );
