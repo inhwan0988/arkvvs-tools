@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
+import { callClaude } from "@/lib/tools/vvs-planner/claude";
 import { buildInterviewQuestionsPrompt } from "@/lib/tools/vvs-planner/prompts";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type {
   ChannelProfile,
   InterviewQuestion,
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -61,6 +64,15 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "vvs-planner",
+    action: "interview-questions",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
 
   try {
     const prompt = buildInterviewQuestionsPrompt({
@@ -70,7 +82,7 @@ export async function POST(req: NextRequest) {
       channelProfile: body.channelProfile || null,
       userIntent: body.userIntent || null,
     });
-    const raw = await generateTopicsRaw(apiKey, prompt);
+    const { text: raw, model, usage } = await callClaude(apiKey, prompt);
 
     // JSON parse (robust)
     const match = raw.match(/\{[\s\S]*\}/);
@@ -95,11 +107,31 @@ export async function POST(req: NextRequest) {
       if (q.type !== "chips" && q.type !== "short_text") q.type = "short_text";
     });
 
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "interview-questions",
+      provider: "anthropic",
+      model,
+      tokensIn: usage.input,
+      tokensOut: usage.output,
+      usedOwnKey,
+    });
+
     return NextResponse.json({ questions });
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "질문 생성 중 오류가 발생했습니다.";
     console.error("[interview-questions] error:", msg);
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "interview-questions",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

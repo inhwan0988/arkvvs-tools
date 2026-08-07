@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
+import { callClaude } from "@/lib/tools/vvs-planner/claude";
 import { buildAnalyzeReelPrompt } from "@/lib/tools/insta-planner/prompts";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type { ReelAnalysis, ReelResult } from "@/lib/tools/insta-planner/types";
 
 export const runtime = "nodejs";
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest) {
   if (!body.reel) {
     return NextResponse.json({ error: "콘텐츠 정보가 필요합니다." }, { status: 400 });
   }
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -43,9 +46,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "insta-viral-planner",
+    action: "analyze-reel",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
+
   try {
     const prompt = buildAnalyzeReelPrompt(body.reel);
-    const raw = await generateTopicsRaw(apiKey, prompt);
+    const { text: raw, model, usage } = await callClaude(apiKey, prompt);
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("AI 응답에서 JSON을 찾지 못했습니다.");
     let analysis: ReelAnalysis;
@@ -55,10 +67,29 @@ export async function POST(req: NextRequest) {
       const cleaned = match[0].replace(/,(\s*[}\]])/g, "$1");
       analysis = JSON.parse(cleaned) as ReelAnalysis;
     }
+    await logUsage({
+      userId: user.id,
+      toolSlug: "insta-viral-planner",
+      action: "analyze-reel",
+      provider: "anthropic",
+      model,
+      tokensIn: usage.input,
+      tokensOut: usage.output,
+      usedOwnKey,
+    });
     return NextResponse.json({ analysis });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "분석 실패";
     console.error("[analyze-reel]", msg);
+    await logUsage({
+      userId: user.id,
+      toolSlug: "insta-viral-planner",
+      action: "analyze-reel",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

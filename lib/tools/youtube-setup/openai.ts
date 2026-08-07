@@ -1,9 +1,24 @@
 // Edge runtime 호환 — OpenAI API 직접 호출 (fetch 사용)
+export type OpenAICallOut = {
+  text: string;
+  model: string;
+  usage: { input: number; output: number };
+};
+
 export async function generateWithOpenAI(opts: {
   apiKey: string;
   system: string;
   user: string;
 }): Promise<string> {
+  const r = await generateWithOpenAIUsage(opts);
+  return r.text;
+}
+
+export async function generateWithOpenAIUsage(opts: {
+  apiKey: string;
+  system: string;
+  user: string;
+}): Promise<OpenAICallOut> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -27,8 +42,17 @@ export async function generateWithOpenAI(opts: {
 
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
+    model?: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   const text = data.choices?.[0]?.message?.content;
   if (!text) throw new Error("OpenAI 응답이 비어있습니다.");
-  return text;
+  return {
+    text,
+    model: data.model ?? "gpt-4o",
+    usage: {
+      input: data.usage?.prompt_tokens ?? 0,
+      output: data.usage?.completion_tokens ?? 0,
+    },
+  };
 }

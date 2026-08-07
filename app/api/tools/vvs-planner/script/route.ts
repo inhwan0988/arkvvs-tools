@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { streamClaudeText } from "@/lib/tools/vvs-planner/claude";
 import { buildScriptPrompt } from "@/lib/tools/vvs-planner/prompts";
 import { getTranscript } from "@/lib/tools/vvs-planner/transcript";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type {
   ChannelProfile,
   InterviewAnswers,
@@ -83,8 +85,18 @@ export async function POST(req: NextRequest) {
     return jsonError("주제, 자막, 영상 제목이 필요합니다.", 400);
   }
 
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return jsonError("Anthropic API 키가 필요합니다.", 400);
+
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "vvs-planner",
+    action: "script",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
 
   try {
     const referenceVideos = body.referenceVideoUrls
@@ -97,7 +109,21 @@ export async function POST(req: NextRequest) {
       interviewQuestions: body.interviewQuestions || null,
       interviewAnswers: body.interviewAnswers || null,
     });
-    const stream = await streamClaudeText(apiKey, prompt);
+    const stream = await streamClaudeText(apiKey, prompt, {
+      onFinish: ({ model, usage }) => {
+        // fire-and-forget (stream 완료 후) — void ignore
+        void logUsage({
+          userId: user.id,
+          toolSlug: "vvs-planner",
+          action: "script",
+          provider: "anthropic",
+          model,
+          tokensIn: usage.input,
+          tokensOut: usage.output,
+          usedOwnKey,
+        });
+      },
+    });
     return new Response(stream, {
       headers: {
         "content-type": "text/plain; charset=utf-8",
@@ -107,6 +133,15 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "대본 생성 중 오류가 발생했습니다.";
+    void logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "script",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return jsonError(msg, 500);
   }
 }

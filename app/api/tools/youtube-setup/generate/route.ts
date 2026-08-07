@@ -5,9 +5,11 @@ import {
   ChannelStage,
   Section,
 } from "@/lib/tools/youtube-setup/prompts";
-import { generateWithClaude } from "@/lib/tools/youtube-setup/claude";
-import { generateWithOpenAI } from "@/lib/tools/youtube-setup/openai";
+import { generateWithClaudeUsage } from "@/lib/tools/youtube-setup/claude";
+import { generateWithOpenAIUsage } from "@/lib/tools/youtube-setup/openai";
 import { createClient } from "@/lib/supabase/server";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 
 // Edge runtime: 첫 응답 25초 내, 이후 스트리밍 최대 5분
 export const runtime = "edge";
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ error: "스크립트가 비어있습니다." }, 400);
   }
 
+  const usedOwnKey = !!body.apiKey?.trim();
   const apiKey =
     body.apiKey?.trim() ||
     (provider === "claude"
@@ -90,6 +93,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // ─── Quota 체크 (섹션 4개를 1회 사용으로 카운트) ───
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "youtube-setup",
+    action: "generate",
+    provider: provider === "claude" ? "anthropic" : "openai",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
+
   // ─── SSE 스트리밍 응답 ───
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -103,23 +116,33 @@ export async function POST(req: NextRequest) {
       // 즉시 첫 바이트 전송 → Vercel 25초 타이머 통과
       send("start", { sections: SECTIONS });
 
+      // 4개 섹션 usage 합산 (전체 호출 = 1 quota, 하지만 실제 비용은 4번 호출의 합)
+      let totalIn = 0;
+      let totalOut = 0;
+      let usedModel = provider === "claude" ? "claude-sonnet-4-5" : "gpt-4o";
+      let anyOk = false;
+
       // 4개 섹션 병렬 호출
       const callOne = async (section: Section) => {
         try {
           const userPrompt = buildSectionPrompt(script, stage, section);
-          const raw =
+          const r =
             provider === "claude"
-              ? await generateWithClaude({
+              ? await generateWithClaudeUsage({
                   apiKey,
                   system: SYSTEM_PROMPT,
                   user: userPrompt,
                 })
-              : await generateWithOpenAI({
+              : await generateWithOpenAIUsage({
                   apiKey,
                   system: SYSTEM_PROMPT,
                   user: userPrompt,
                 });
-          const parsed = tryExtractJson(raw);
+          totalIn += r.usage.input;
+          totalOut += r.usage.output;
+          usedModel = r.model;
+          anyOk = true;
+          const parsed = tryExtractJson(r.text);
           send("section", { section, data: parsed });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "AI 호출 실패";
@@ -142,6 +165,18 @@ export async function POST(req: NextRequest) {
         send("error", { message: msg });
       } finally {
         clearInterval(ping);
+        // 최종 usage 기록 (섹션 4개 모두 실패한 경우 status=error)
+        void logUsage({
+          userId: user.id,
+          toolSlug: "youtube-setup",
+          action: "generate",
+          provider: provider === "claude" ? "anthropic" : "openai",
+          model: usedModel,
+          tokensIn: totalIn,
+          tokensOut: totalOut,
+          usedOwnKey,
+          status: anyOk ? "ok" : "error",
+        });
         controller.close();
       }
     },
