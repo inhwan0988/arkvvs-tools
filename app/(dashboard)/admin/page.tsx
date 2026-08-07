@@ -33,12 +33,20 @@ export default async function AdminPage() {
             수강생에게만 부여하세요.
           </p>
         </div>
-        <a
-          href="/admin/errors"
-          className="shrink-0 rounded-lg bg-chip px-3 py-1.5 text-xs font-bold text-sub hover:bg-line"
-        >
-          🆘 에러 모니터링 →
-        </a>
+        <div className="shrink-0 flex gap-2">
+          <a
+            href="/admin/usage"
+            className="rounded-lg bg-chip px-3 py-1.5 text-xs font-bold text-sub hover:bg-line"
+          >
+            📊 사용량 모니터링 →
+          </a>
+          <a
+            href="/admin/errors"
+            className="rounded-lg bg-chip px-3 py-1.5 text-xs font-bold text-sub hover:bg-line"
+          >
+            🆘 에러 모니터링 →
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">

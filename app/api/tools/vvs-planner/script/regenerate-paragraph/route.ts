@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
+import { callClaude } from "@/lib/tools/vvs-planner/claude";
 import { buildParagraphRegenPrompt } from "@/lib/tools/vvs-planner/prompts";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type {
   ChannelProfile,
   ParagraphTone,
@@ -54,6 +56,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -61,6 +64,15 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "vvs-planner",
+    action: "regenerate-paragraph",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
 
   try {
     const prompt = buildParagraphRegenPrompt({
@@ -70,7 +82,7 @@ export async function POST(req: NextRequest) {
       tone,
       channelProfile: body.channelProfile || null,
     });
-    const raw = await generateTopicsRaw(apiKey, prompt);
+    const { text: raw, model, usage } = await callClaude(apiKey, prompt);
     // 모델이 가끔 마크다운 코드블록을 씌우는 경우 제거
     const cleaned = raw
       .replace(/^```[a-z]*\n?/i, "")
@@ -79,11 +91,30 @@ export async function POST(req: NextRequest) {
     if (!cleaned) {
       throw new Error("재생성된 단락이 비어있습니다.");
     }
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "regenerate-paragraph",
+      provider: "anthropic",
+      model,
+      tokensIn: usage.input,
+      tokensOut: usage.output,
+      usedOwnKey,
+    });
     return NextResponse.json({ paragraph: cleaned });
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "단락 재생성 중 오류가 발생했습니다.";
     console.error("[regenerate-paragraph] error:", msg);
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "regenerate-paragraph",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

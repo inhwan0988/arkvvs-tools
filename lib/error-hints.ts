@@ -58,6 +58,24 @@ const RULES: Rule[] = [
     },
   },
   {
+    // 우리 플랫폼의 무료 티어 quota 초과 (429 응답)
+    match: /무료 사용 한도|무료 quota/,
+    hint: {
+      title: "오늘의 무료 사용량을 모두 썼어요",
+      hint: "우측 상단 설정에서 본인 Claude/OpenAI API 키를 입력하면 즉시 이어서 쓸 수 있어요. 무료 사용량은 KST 기준 자정에 리셋됩니다.",
+      actions: [
+        {
+          label: "Anthropic 키 발급",
+          href: "https://console.anthropic.com/settings/keys",
+        },
+        {
+          label: "OpenAI 키 발급",
+          href: "https://platform.openai.com/api-keys",
+        },
+      ],
+    },
+  },
+  {
     match: /insufficient_quota|429|rate.limit|quota/i,
     hint: {
       title: "API 사용량 한도 초과",

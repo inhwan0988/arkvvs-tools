@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { streamClaudeText } from "@/lib/tools/vvs-planner/claude";
 import { buildScriptPrompt } from "@/lib/tools/insta-planner/prompts";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type {
   ContentIdea,
   InstaProfile,
@@ -43,15 +45,38 @@ export async function POST(req: NextRequest) {
   if (!body.idea || !body.reel) {
     return jsonError("아이디어와 영감 콘텐츠 정보가 필요합니다.", 400);
   }
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return jsonError("Anthropic API 키가 필요합니다.", 400);
+
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "insta-viral-planner",
+    action: "generate-script",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
 
   try {
     const prompt = buildScriptPrompt(body.idea, body.reel, {
       profile: body.profile,
       userIntent: body.userIntent,
     });
-    const stream = await streamClaudeText(apiKey, prompt);
+    const stream = await streamClaudeText(apiKey, prompt, {
+      onFinish: ({ model, usage }) => {
+        void logUsage({
+          userId: user.id,
+          toolSlug: "insta-viral-planner",
+          action: "generate-script",
+          provider: "anthropic",
+          model,
+          tokensIn: usage.input,
+          tokensOut: usage.output,
+          usedOwnKey,
+        });
+      },
+    });
     return new Response(stream, {
       headers: {
         "content-type": "text/plain; charset=utf-8",
@@ -61,6 +86,15 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "대본 생성 실패";
+    void logUsage({
+      userId: user.id,
+      toolSlug: "insta-viral-planner",
+      action: "generate-script",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return jsonError(msg, 500);
   }
 }

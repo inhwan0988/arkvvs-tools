@@ -5,6 +5,8 @@ import {
   fetchRecentVideos,
   analyzeChannelStyle,
 } from "@/lib/tools/vvs-planner/channel-profile";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 
 export const runtime = "nodejs";
 
@@ -76,6 +78,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "vvs-planner",
+    action: "profile-channel",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
+
   try {
     // 1. 채널 ID 확정
     const { channelId, channelTitle } = await resolveChannelId(
@@ -125,17 +137,37 @@ export async function POST(req: NextRequest) {
     if (upsertErr) {
       // 테이블 없음 — 그래도 분석 결과는 반환 (사용자 세션에만 보관)
       console.warn("[profile-channel] upsert failed (테이블 미생성 가능):", upsertErr.message);
+    }
+
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "profile-channel",
+      provider: "anthropic",
+      model: "claude-sonnet-4-5",
+      usedOwnKey,
+    });
+
+    if (upsertErr) {
       return NextResponse.json({
         profile: row,
         warning:
           "DB 저장이 안 됐어요 (테이블이 아직 안 만들어진 듯). 이번 세션에서는 작동합니다.",
       });
     }
-
     return NextResponse.json({ profile: row });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[profile-channel] error:", msg);
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "profile-channel",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

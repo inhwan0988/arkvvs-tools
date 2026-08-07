@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
+import { callClaude } from "@/lib/tools/vvs-planner/claude";
 import { buildAnalyzeVideoPrompt } from "@/lib/tools/vvs-planner/prompts";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type { VideoAnalysis } from "@/lib/tools/vvs-planner/types";
 
 export const runtime = "nodejs";
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -51,9 +54,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "vvs-planner",
+    action: "analyze-video",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
+
   try {
     const prompt = buildAnalyzeVideoPrompt(transcript, videoTitle, channelTitle);
-    const raw = await generateTopicsRaw(apiKey, prompt);
+    const { text: raw, model, usage } = await callClaude(apiKey, prompt);
 
     // JSON 파싱 (robust)
     const match = raw.match(/\{[\s\S]*\}/);
@@ -67,11 +79,31 @@ export async function POST(req: NextRequest) {
       analysis = JSON.parse(cleaned) as VideoAnalysis;
     }
 
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "analyze-video",
+      provider: "anthropic",
+      model,
+      tokensIn: usage.input,
+      tokensOut: usage.output,
+      usedOwnKey,
+    });
+
     return NextResponse.json({ analysis });
   } catch (e) {
     const msg =
       e instanceof Error ? e.message : "영상 분석 중 오류가 발생했습니다.";
     console.error("[analyze-video] error:", msg);
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "analyze-video",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

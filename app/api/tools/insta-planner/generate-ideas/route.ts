@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
+import { callClaude } from "@/lib/tools/vvs-planner/claude";
 import { buildIdeasPrompt } from "@/lib/tools/insta-planner/prompts";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type {
   ContentIdea,
   InstaProfile,
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -92,21 +95,49 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "insta-viral-planner",
+    action: "generate-ideas",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
+
   try {
     const prompt = buildIdeasPrompt(body.reel, body.analysis, {
       profile: body.profile,
       userIntent: body.userIntent,
       targetFormat: body.targetFormat,
     });
-    const raw = await generateTopicsRaw(apiKey, prompt);
+    const { text: raw, model, usage } = await callClaude(apiKey, prompt);
     const ideas = parseIdeasRobust(raw);
     if (!Array.isArray(ideas) || ideas.length === 0) {
       throw new Error("생성된 아이디어가 없습니다.");
     }
+    await logUsage({
+      userId: user.id,
+      toolSlug: "insta-viral-planner",
+      action: "generate-ideas",
+      provider: "anthropic",
+      model,
+      tokensIn: usage.input,
+      tokensOut: usage.output,
+      usedOwnKey,
+    });
     return NextResponse.json({ ideas });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "아이디어 생성 실패";
     console.error("[generate-ideas]", msg);
+    await logUsage({
+      userId: user.id,
+      toolSlug: "insta-viral-planner",
+      action: "generate-ideas",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

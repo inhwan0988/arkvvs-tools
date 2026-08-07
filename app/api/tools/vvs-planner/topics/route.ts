@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateTopicsRaw } from "@/lib/tools/vvs-planner/claude";
+import { callClaude } from "@/lib/tools/vvs-planner/claude";
 import { buildTopicPrompt } from "@/lib/tools/vvs-planner/prompts";
 import { getTranscript } from "@/lib/tools/vvs-planner/transcript";
+import { enforceQuota } from "@/lib/usage/wrap";
+import { logUsage } from "@/lib/usage/logger";
 import type { ChannelProfile, ReferenceVideo, Topic, UserIntent } from "@/lib/tools/vvs-planner/types";
 
 // youtube-transcript는 Node 런타임 필요
@@ -134,6 +136,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const usedOwnKey = !!body.anthropicApiKey?.trim();
   const apiKey = body.anthropicApiKey?.trim() || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -141,6 +144,15 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  const quotaResp = await enforceQuota({
+    userId: user.id,
+    toolSlug: "vvs-planner",
+    action: "topics",
+    provider: "anthropic",
+    usedOwnKey,
+  });
+  if (quotaResp) return quotaResp;
 
   try {
     // 레퍼런스 영상 자막 추출 (선택, 실패해도 본 흐름 영향 X)
@@ -153,14 +165,33 @@ export async function POST(req: NextRequest) {
       referenceVideos,
       userIntent: body.userIntent || null,
     });
-    const raw = await generateTopicsRaw(apiKey, prompt);
+    const { text: raw, model, usage } = await callClaude(apiKey, prompt);
     const topics = parseTopicsRobust(raw);
     if (!Array.isArray(topics) || topics.length === 0) {
       throw new Error("생성된 주제가 없습니다.");
     }
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "topics",
+      provider: "anthropic",
+      model,
+      tokensIn: usage.input,
+      tokensOut: usage.output,
+      usedOwnKey,
+    });
     return NextResponse.json({ topics });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "주제 생성 중 오류가 발생했습니다.";
+    await logUsage({
+      userId: user.id,
+      toolSlug: "vvs-planner",
+      action: "topics",
+      provider: "anthropic",
+      usedOwnKey,
+      status: "error",
+      errorMessage: msg.slice(0, 200),
+    });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
