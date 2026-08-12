@@ -42,9 +42,6 @@ export default function Step35Interview() {
     const ctrl = new AbortController();
     (async () => {
       try {
-        if (!anthropicApiKey.trim()) {
-          throw new Error("우측 상단에서 Claude API 키를 입력해주세요.");
-        }
         setPhase("loading");
         setError(null);
         const res = await fetch("/api/tools/vvs-planner/interview-questions", {

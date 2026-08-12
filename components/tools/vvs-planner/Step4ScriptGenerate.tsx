@@ -29,10 +29,6 @@ export default function Step4ScriptGenerate() {
 
   const generate = async () => {
     if (!selectedTopic || !selectedVideo || !transcript) return;
-    if (!anthropicApiKey.trim()) {
-      setError("우측 상단에서 Claude API 키를 입력해주세요.");
-      return;
-    }
 
     setScript("");
     setIsStreaming(true);

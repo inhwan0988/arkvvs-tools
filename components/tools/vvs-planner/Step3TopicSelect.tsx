@@ -65,9 +65,6 @@ export default function Step3TopicSelect() {
    */
   const analyzeVideo = useCallback(
     async (transcript: string, signal?: AbortSignal): Promise<VideoAnalysis> => {
-      if (!anthropicApiKey.trim()) {
-        throw new Error("우측 상단에서 Claude API 키를 입력해주세요.");
-      }
       if (!selectedVideo) throw new Error("영상이 선택되지 않았습니다.");
       setPhase("analyze");
       const res = await fetch("/api/tools/vvs-planner/analyze-video", {
@@ -93,9 +90,6 @@ export default function Step3TopicSelect() {
 
   const generateTopics = useCallback(
     async (transcript: string, signal?: AbortSignal) => {
-      if (!anthropicApiKey.trim()) {
-        throw new Error("우측 상단에서 Claude API 키를 입력해주세요.");
-      }
       if (!selectedVideo) throw new Error("영상이 선택되지 않았습니다.");
       if (!userIntent.freeText.trim()) {
         throw new Error("어떤 방향으로 만들고 싶은지 의도를 입력해주세요.");

@@ -6,6 +6,7 @@ import { useWizard } from "./WizardContext";
 import VideoCard from "./VideoCard";
 import ReferenceVideosInput from "./ReferenceVideosInput";
 import SessionHistory from "./SessionHistory";
+import RecentSearches from "./RecentSearches";
 import type {
   ChannelSize,
   DurationRange,
@@ -107,6 +108,7 @@ export default function Step1KeywordSearch() {
   const [input, setInput] = useState(keyword);
   const [wasCached, setWasCached] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [historyReload, setHistoryReload] = useState(0);
 
   // 활성화된 필터 개수 (시각 표시용)
   const activeFilterCount = [
@@ -154,19 +156,65 @@ export default function Step1KeywordSearch() {
       });
       if (!res.ok) {
         const data = await res.json();
-        if (res.status === 400 && !youtubeApiKey.trim()) {
-          throw new Error("우측 상단에서 YouTube API 키를 입력해주세요.");
-        }
         throw new Error(data.error ?? "검색 중 오류가 발생했습니다.");
       }
       const data = await res.json();
       setVideos(data.videos as VideoResult[]);
       setWasCached(Boolean(data.cached));
+      setHistoryReload((n) => n + 1); // 최근 검색어 refresh
     } catch (e) {
       setError(e instanceof Error ? e.message : "검색 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const pickRecent = (kw: string) => {
+    setInput(kw);
+    // input state 세팅 후 다음 tick에 search 실행 (React state 반영 대기)
+    setTimeout(() => {
+      // 최신 값으로 검색 (input state 대신 kw 직접 사용)
+      const trimmed = kw.trim();
+      if (!trimmed) return;
+      setKeyword(trimmed);
+      setLoading(true);
+      setError(null);
+      fetch("/api/tools/vvs-planner/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keyword: trimmed,
+          youtubeApiKey,
+          period: filters.period,
+          minViews: filters.minViews,
+          channelSize: filters.channelSize,
+          videoFormat: filters.videoFormat,
+          deepSearch: filters.deepSearch,
+          minVvs: filters.minVvs,
+          minEngagementRate: filters.minEngagementRate,
+          durationRange: filters.durationRange,
+          captionsOnly: filters.captionsOnly,
+          excludeKeywords: filters.excludeKeywords,
+          sortBy: filters.sortBy,
+          maxResults: filters.maxResults,
+          bypassCache: false,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const d = await res.json();
+            throw new Error(d.error ?? "검색 중 오류가 발생했습니다.");
+          }
+          const data = await res.json();
+          setVideos(data.videos as VideoResult[]);
+          setWasCached(Boolean(data.cached));
+          setHistoryReload((n) => n + 1);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : "검색 중 오류가 발생했습니다.");
+        })
+        .finally(() => setLoading(false));
+    }, 0);
   };
 
   const onSelect = (v: VideoResult) => {
@@ -224,6 +272,7 @@ export default function Step1KeywordSearch() {
   return (
     <div>
       <SessionHistory onPick={pickSession} />
+      <RecentSearches onPick={pickRecent} reloadKey={historyReload} />
       <ReferenceVideosInput />
       <div className="flex gap-2">
         <input
