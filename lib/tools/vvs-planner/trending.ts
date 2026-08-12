@@ -161,6 +161,8 @@ export async function fetchTrending(
 
     if (views < NOISE_FLOOR_MIN_VIEWS) continue;
     if (subs < NOISE_FLOOR_MIN_SUBS) continue;
+    // 롱폼만: 쇼츠(≤180초 또는 #shorts/#쇼츠 태그) 제외
+    if (isShorts) continue;
 
     const vvs = subs > 0 ? views / subs : 0;
     const vvsSmoothed = views / (subs + VVS_SMOOTHING_K);
