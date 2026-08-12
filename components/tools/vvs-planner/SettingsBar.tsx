@@ -6,6 +6,10 @@ import ApiKeyGuideModal, {
   type GuideType,
 } from "@/components/dashboard/ApiKeyGuideModal";
 
+/**
+ * 기본은 서버 API 키 사용 → 사용자는 아무것도 입력 안 해도 됨.
+ * 우상단 "고급" 버튼 클릭 시 BYOK 입력 모달 (파워 유저용).
+ */
 export default function SettingsBar() {
   const {
     youtubeApiKey,
@@ -13,10 +17,8 @@ export default function SettingsBar() {
     anthropicApiKey,
     setAnthropicApiKey,
   } = useWizard();
-  const [showYt, setShowYt] = useState(false);
-  const [showAnt, setShowAnt] = useState(false);
   const [guide, setGuide] = useState<GuideType | null>(null);
-  const [mobileKeysOpen, setMobileKeysOpen] = useState(false);
+  const [advOpen, setAdvOpen] = useState(false);
 
   useEffect(() => {
     const yt = localStorage.getItem("apiKey_youtube");
@@ -27,11 +29,15 @@ export default function SettingsBar() {
 
   useEffect(() => {
     if (youtubeApiKey) localStorage.setItem("apiKey_youtube", youtubeApiKey);
+    else localStorage.removeItem("apiKey_youtube");
   }, [youtubeApiKey]);
 
   useEffect(() => {
     if (anthropicApiKey) localStorage.setItem("apiKey_claude", anthropicApiKey);
+    else localStorage.removeItem("apiKey_claude");
   }, [anthropicApiKey]);
+
+  const usingByok = !!(youtubeApiKey.trim() || anthropicApiKey.trim());
 
   return (
     <>
@@ -47,150 +53,66 @@ export default function SettingsBar() {
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            <KeyInput
-              label="YouTube"
-              placeholder="AIzaSy… (여러 개면 쉼표로)"
-              value={youtubeApiKey}
-              onChange={setYoutubeApiKey}
-              show={showYt}
-              setShow={setShowYt}
-              onHelp={() => setGuide("youtube")}
-              multiKey
-            />
-            <KeyInput
-              label="Claude"
-              placeholder="sk-ant-…"
-              value={anthropicApiKey}
-              onChange={setAnthropicApiKey}
-              show={showAnt}
-              setShow={setShowAnt}
-              onHelp={() => setGuide("claude")}
-            />
+            {usingByok && (
+              <span className="hidden sm:inline-flex items-center gap-1 rounded-md bg-successSoft px-2 py-1 text-[11px] font-bold text-success">
+                BYOK 무제한
+              </span>
+            )}
             <button
-              onClick={() => setMobileKeysOpen(true)}
-              className="sm:hidden flex items-center gap-1.5 rounded-lg bg-chip px-3 py-2 text-xs font-bold text-ink hover:bg-line"
-              aria-label="API 키 설정"
+              onClick={() => setAdvOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-chip px-3 py-2 text-xs font-bold text-ink hover:bg-line"
+              title="본인 API 키 설정 (선택 사항)"
             >
               <span className="text-base leading-none">⚙️</span>
-              <span>API 키</span>
+              <span className="hidden sm:inline">고급 (본인 키)</span>
+              <span className="sm:hidden">고급</span>
             </button>
           </div>
         </div>
       </header>
+
       <ApiKeyGuideModal type={guide} onClose={() => setGuide(null)} />
-      {mobileKeysOpen && (
-        <MobileKeysModal
-          onClose={() => setMobileKeysOpen(false)}
-          fields={[
-            {
-              label: "YouTube",
-              placeholder: "AIzaSy… (여러 개면 쉼표로)",
-              value: youtubeApiKey,
-              onChange: setYoutubeApiKey,
-              onHelp: () => setGuide("youtube"),
-              multiKey: true,
-            },
-            {
-              label: "Claude",
-              placeholder: "sk-ant-…",
-              value: anthropicApiKey,
-              onChange: setAnthropicApiKey,
-              onHelp: () => setGuide("claude"),
-            },
-          ]}
+
+      {advOpen && (
+        <AdvancedKeysModal
+          onClose={() => setAdvOpen(false)}
+          youtubeApiKey={youtubeApiKey}
+          setYoutubeApiKey={setYoutubeApiKey}
+          anthropicApiKey={anthropicApiKey}
+          setAnthropicApiKey={setAnthropicApiKey}
+          onHelp={setGuide}
         />
       )}
     </>
   );
 }
 
-function KeyInput({
-  label,
-  placeholder,
-  value,
-  onChange,
-  show,
-  setShow,
-  onHelp,
-  multiKey = false,
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  show: boolean;
-  setShow: (v: boolean) => void;
-  onHelp: () => void;
-  multiKey?: boolean;
-}) {
-  // 다중 키일 때 등록된 키 개수 카운트 (UX 표시용)
-  const keyCount = multiKey
-    ? value.split(/[,\n]/).map((k) => k.trim()).filter(Boolean).length
-    : 0;
-  return (
-    <div className="relative hidden sm:block">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-mute uppercase tracking-wider pointer-events-none">
-        {label}
-      </span>
-      <input
-        type={show ? "text" : "password"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`text-sm pl-16 pr-24 py-2 rounded-xl bg-chip ${
-          multiKey ? "w-80" : "w-64"
-        } focus:outline-none focus:bg-white focus:ring-2 focus:ring-brand/30 transition font-mono placeholder:text-mute`}
-      />
-      {multiKey && keyCount > 1 && (
-        <span className="absolute right-20 top-1/2 -translate-y-1/2 text-[10px] font-bold text-success bg-success/15 px-1.5 py-0.5 rounded">
-          {keyCount}개
-        </span>
-      )}
-      <button
-        onClick={() => setShow(!show)}
-        className="absolute right-9 top-1/2 -translate-y-1/2 text-xs text-mute hover:text-ink px-1.5 py-1"
-      >
-        {show ? "숨김" : "표시"}
-      </button>
-      <button
-        onClick={onHelp}
-        className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded-md text-xs font-bold text-mute hover:bg-line hover:text-ink"
-        title={`${label} 키 발급 방법`}
-        aria-label={`${label} 키 발급 가이드`}
-      >
-        ?
-      </button>
-    </div>
-  );
-}
-
-type MobileField = {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  onHelp?: () => void;
-  multiKey?: boolean;
-};
-
-function MobileKeysModal({
+function AdvancedKeysModal({
   onClose,
-  fields,
+  youtubeApiKey,
+  setYoutubeApiKey,
+  anthropicApiKey,
+  setAnthropicApiKey,
+  onHelp,
 }: {
   onClose: () => void;
-  fields: MobileField[];
+  youtubeApiKey: string;
+  setYoutubeApiKey: (v: string) => void;
+  anthropicApiKey: string;
+  setAnthropicApiKey: (v: string) => void;
+  onHelp: (t: GuideType) => void;
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 sm:hidden bg-black/50 flex items-end"
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center sm:p-6"
       onClick={onClose}
     >
       <div
-        className="w-full bg-surface rounded-t-2xl p-5 pb-7 max-h-[90vh] overflow-y-auto"
+        className="w-full sm:max-w-md sm:rounded-2xl bg-surface p-5 pb-7 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold">API 키 설정</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-base font-bold">고급 · 본인 API 키 사용</h2>
           <button
             onClick={onClose}
             className="h-8 w-8 flex items-center justify-center rounded-lg text-mute hover:bg-chip"
@@ -199,27 +121,53 @@ function MobileKeysModal({
             ✕
           </button>
         </div>
+        <p className="text-[13px] text-sub leading-relaxed mb-5">
+          비워두면 무료 티어(하루 사용량 제한) 자동 사용.
+          <br />본인 키 입력 시 <strong className="text-brand">무제한</strong>{" "}
+          + 개인 비용 부담.
+        </p>
+
         <div className="space-y-4">
-          {fields.map((f) => (
-            <MobileKeyField key={f.label} {...f} />
-          ))}
+          <KeyField
+            label="YouTube Data API v3"
+            placeholder="AIzaSy… (여러 개면 쉼표로)"
+            value={youtubeApiKey}
+            onChange={setYoutubeApiKey}
+            onHelp={() => onHelp("youtube")}
+            multiKey
+          />
+          <KeyField
+            label="Claude (Anthropic)"
+            placeholder="sk-ant-…"
+            value={anthropicApiKey}
+            onChange={setAnthropicApiKey}
+            onHelp={() => onHelp("claude")}
+          />
         </div>
+
         <p className="mt-5 text-[11px] text-mute leading-relaxed">
-          키는 브라우저 localStorage에만 저장됩니다 (BYOK).
+          키는 브라우저 localStorage에만 저장됩니다.
         </p>
       </div>
     </div>
   );
 }
 
-function MobileKeyField({
+function KeyField({
   label,
   placeholder,
   value,
   onChange,
   onHelp,
-  multiKey,
-}: MobileField) {
+  multiKey = false,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  onHelp?: () => void;
+  multiKey?: boolean;
+}) {
   const [show, setShow] = useState(false);
   const keyCount = multiKey
     ? value.split(/[,\n]/).map((k) => k.trim()).filter(Boolean).length

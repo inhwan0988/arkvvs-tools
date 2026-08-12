@@ -56,10 +56,6 @@ export default function ParagraphScriptDisplay({
 
   const handleRegen = async (idx: number, tone?: ParagraphTone) => {
     if (regenIdx !== null) return;
-    if (!anthropicApiKey.trim()) {
-      setError("우측 상단에서 Claude API 키를 입력해주세요.");
-      return;
-    }
     setError(null);
     setRegenIdx(idx);
     try {
