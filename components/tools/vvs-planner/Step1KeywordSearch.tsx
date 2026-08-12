@@ -154,9 +154,6 @@ export default function Step1KeywordSearch() {
       });
       if (!res.ok) {
         const data = await res.json();
-        if (res.status === 400 && !youtubeApiKey.trim()) {
-          throw new Error("우측 상단에서 YouTube API 키를 입력해주세요.");
-        }
         throw new Error(data.error ?? "검색 중 오류가 발생했습니다.");
       }
       const data = await res.json();
