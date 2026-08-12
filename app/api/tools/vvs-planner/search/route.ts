@@ -74,6 +74,19 @@ export async function POST(req: NextRequest) {
     maxResults: body.maxResults,
   };
 
+  // ─── 검색 기록 로깅 (fire-and-forget, 실패해도 무시) ───
+  void supabase
+    .from("vvs_search_history")
+    .insert({
+      user_id: user.id,
+      keyword,
+      filters,
+      cached: false, // 아래 실제 결과 나오면 최신 record가 update되진 않음 (append-only)
+    })
+    .then(({ error }) => {
+      if (error) console.warn("[search-history] insert:", error.message);
+    });
+
   // ─── 캐시 조회 (24h TTL) ─────────────────────────
   const cacheKey = buildCacheKey(keyword, filters);
   if (!body.bypassCache) {
