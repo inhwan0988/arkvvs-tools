@@ -36,11 +36,11 @@ export default function Step1KeywordSearch() {
   const [mode, setMode] = useState<"trending" | "personalized" | "search">(
     keyword ? "search" : "trending",
   );
-  const [personalKeyword, setPersonalKeyword] = useState<string | null>(null);
+  const [personalKeywords, setPersonalKeywords] = useState<string[]>([]);
   const trendingFetched = useRef(false);
 
   // 첫 진입 시:
-  //  - 최근 검색어 있으면 그 키워드로 이번주 롱폼 인기 영상 (개인화)
+  //  - 최근 검색어 여러 개 있으면 각 키워드로 이번주 롱폼 병렬 검색 → 병합 스코어 순
   //  - 없으면 KR mostPopular 롱폼 폴백
   useEffect(() => {
     if (trendingFetched.current) return;
@@ -51,8 +51,8 @@ export default function Step1KeywordSearch() {
       setLoading(true);
       setError(null);
       try {
-        // 1) 최근 검색어 조회 (실패해도 폴백 있으니 조용히)
-        let topKeyword: string | null = null;
+        // 1) 최근 검색어 조회 (최대 3개)
+        let topKeywords: string[] = [];
         try {
           const hRes = await fetch("/api/tools/vvs-planner/search-history", {
             cache: "no-store",
@@ -61,45 +61,62 @@ export default function Step1KeywordSearch() {
             const hData = (await hRes.json()) as {
               history: { keyword: string }[];
             };
-            topKeyword = hData.history?.[0]?.keyword?.trim() || null;
+            topKeywords = (hData.history ?? [])
+              .map((h) => h.keyword?.trim())
+              .filter((k): k is string => !!k)
+              .slice(0, 3);
           }
         } catch {
           /* ignore */
         }
 
-        if (topKeyword) {
-          // 2a) 개인화: 최신 검색어로 이번주 롱폼 검색
-          const res = await fetch("/api/tools/vvs-planner/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              keyword: topKeyword,
-              period: "1w",
-              videoFormat: "long",
-              sortBy: "score",
-              channelSize: "all",
-              minViews: 0,
-              minVvs: 0,
-              minEngagementRate: 0,
-              durationRange: "any",
-              captionsOnly: false,
-              excludeKeywords: "",
-              maxResults: 20,
-              deepSearch: false,
-              bypassCache: false,
-            }),
-          });
-          if (!res.ok) {
-            const d = await res.json();
-            throw new Error(d.error ?? "인기 영상을 불러오지 못했습니다.");
+        if (topKeywords.length > 0) {
+          // 2a) 개인화: 각 키워드로 이번주 롱폼 병렬 검색 → 병합
+          const searchOne = (kw: string) =>
+            fetch("/api/tools/vvs-planner/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                keyword: kw,
+                period: "1w",
+                videoFormat: "long",
+                sortBy: "score",
+                channelSize: "all",
+                minViews: 0,
+                minVvs: 0,
+                minEngagementRate: 0,
+                durationRange: "any",
+                captionsOnly: false,
+                excludeKeywords: "",
+                maxResults: 20,
+                deepSearch: false,
+                bypassCache: false,
+              }),
+            }).then(async (r) => {
+              if (!r.ok) return { videos: [] as VideoResult[], cached: false };
+              return (await r.json()) as {
+                videos: VideoResult[];
+                cached?: boolean;
+              };
+            });
+
+          const results = await Promise.all(topKeywords.map(searchOne));
+          const dedup = new Map<string, VideoResult>();
+          for (const r of results) {
+            for (const v of r.videos ?? []) {
+              const prev = dedup.get(v.videoId);
+              // 중복 시 score 높은 것 유지
+              if (!prev || v.score > prev.score) dedup.set(v.videoId, v);
+            }
           }
-          const data = (await res.json()) as {
-            videos: VideoResult[];
-            cached?: boolean;
-          };
-          setVideos(data.videos);
-          setWasCached(!!data.cached);
-          setPersonalKeyword(topKeyword);
+          const merged = [...dedup.values()]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 30);
+          const allCached = results.every((r) => r.cached);
+
+          setVideos(merged);
+          setWasCached(allCached);
+          setPersonalKeywords(topKeywords);
           setMode("personalized");
         } else {
           // 2b) 폴백: KR mostPopular 롱폼
@@ -277,14 +294,21 @@ export default function Step1KeywordSearch() {
         <>
           <div className="mt-6 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm text-sub">
-              {mode === "personalized" && personalKeyword ? (
+              {mode === "personalized" && personalKeywords.length > 0 ? (
                 <>
                   🔥 <strong className="text-ink">이번주 인기 영상</strong>{" "}
-                  <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-brandSoft px-2 py-0.5 text-[11px] font-bold text-brand">
-                    #{personalKeyword}
+                  <span className="ml-1 inline-flex flex-wrap gap-1 align-middle">
+                    {personalKeywords.map((k) => (
+                      <span
+                        key={k}
+                        className="inline-flex items-center rounded-md bg-brandSoft px-2 py-0.5 text-[11px] font-bold text-brand"
+                      >
+                        #{k}
+                      </span>
+                    ))}
                   </span>
                   <span className="ml-1 text-mute">
-                    · 최근 검색어 기반 · 롱폼 {videos.length}개
+                    · 최근 검색어 조합 · 롱폼 {videos.length}개
                   </span>
                   {wasCached && (
                     <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-successSoft px-2 py-0.5 text-[11px] font-bold text-success">
