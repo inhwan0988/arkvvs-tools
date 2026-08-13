@@ -111,10 +111,10 @@ const Ctx = createContext<(State & Actions) | null>(null);
 export function WizardProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState<WizardStep>(1);
   const [keyword, setKeyword] = useState("");
-  const [period, setPeriod] = useState<Period>("all");
+  const [period, setPeriod] = useState<Period>("1w");
   const [minViews, setMinViews] = useState(0);
   const [channelSize, setChannelSize] = useState<ChannelSize>("all");
-  const [videoFormat, setVideoFormat] = useState<VideoFormat>("all");
+  const [videoFormat, setVideoFormat] = useState<VideoFormat>("long");
   const [deepSearch, setDeepSearch] = useState(false);
   // v3 강화 필터
   const [minVvs, setMinVvs] = useState(0);
