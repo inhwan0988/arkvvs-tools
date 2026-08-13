@@ -7,10 +7,45 @@ import {
   CATEGORY_ORDER,
   CATEGORY_META,
   getToolsByCategory,
+  type Category,
   type Tool,
 } from "@/lib/tools/registry";
 import { useSidebar } from "./SidebarContext";
 import SidebarToggleButton from "./SidebarToggleButton";
+
+/**
+ * 카테고리별 컬러 테마 — 사이드바에서 시각적 구분.
+ * Toss 팔레트 토큰만 사용.
+ */
+const CATEGORY_THEME: Record<
+  Category,
+  { text: string; dot: string; border: string; hoverBg: string }
+> = {
+  기획: {
+    text: "text-warn",
+    dot: "bg-warn",
+    border: "border-warn/40",
+    hoverBg: "hover:bg-warnSoft",
+  },
+  편집: {
+    text: "text-brand",
+    dot: "bg-brand",
+    border: "border-brand/40",
+    hoverBg: "hover:bg-brandSoft",
+  },
+  "업로드 및 관리": {
+    text: "text-success",
+    dot: "bg-success",
+    border: "border-success/40",
+    hoverBg: "hover:bg-successSoft",
+  },
+  "콘텐츠 활용": {
+    text: "text-danger",
+    dot: "bg-danger",
+    border: "border-danger/40",
+    hoverBg: "hover:bg-dangerSoft",
+  },
+};
 
 export default function Sidebar({
   isAdmin = false,
@@ -96,27 +131,34 @@ export default function Sidebar({
             </span>
           </Link>
 
-          {/* 툴 목록 — 카테고리별로 바로 노출 (일반공개 → 회원전용 순) */}
+          {/* 툴 목록 — 카테고리별 컬러 테마로 시각적 구분 */}
           {CATEGORY_ORDER.map((category) => {
             const freeTools = groupedFree[category] ?? [];
             const premiumTools = groupedPremium[category] ?? [];
             if (freeTools.length === 0 && premiumTools.length === 0) return null;
             const meta = CATEGORY_META[category];
+            const theme = CATEGORY_THEME[category];
             return (
-              <div key={category} className="mt-3">
-                <div className="px-3 mb-1 flex items-center gap-1.5">
+              <div key={category} className="mt-4">
+                <div className="px-3 mb-1.5 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${theme.dot}`} />
                   <span className="text-[13px]">{meta.emoji}</span>
-                  <span className="text-[11px] font-bold text-mute tracking-tight">
+                  <span
+                    className={`text-[11px] font-bold tracking-tight ${theme.text}`}
+                  >
                     {category}
                   </span>
                 </div>
-                <div className="space-y-0.5">
+                <div
+                  className={`ml-3 pl-2 border-l-2 ${theme.border} space-y-0.5`}
+                >
                   {freeTools.map((tool) => (
                     <SidebarLink
                       key={tool.slug}
                       tool={tool}
                       pathname={pathname}
                       locked={false}
+                      hoverBg={theme.hoverBg}
                     />
                   ))}
                   {premiumTools.map((tool) => (
@@ -125,6 +167,7 @@ export default function Sidebar({
                       tool={tool}
                       pathname={pathname}
                       locked={!isPremium}
+                      hoverBg={theme.hoverBg}
                     />
                   ))}
                 </div>
@@ -186,15 +229,21 @@ function SidebarLink({
   tool,
   pathname,
   locked,
+  hoverBg,
 }: {
   tool: Tool;
   pathname: string;
   locked: boolean;
+  hoverBg?: string; // 카테고리 컬러 hover bg (예: "hover:bg-warnSoft")
 }) {
   const active =
     !tool.external && pathname.startsWith(tool.href) && tool.href !== "#";
   const disabled = tool.status !== "live" || locked;
   const isPremium = Boolean(tool.membersOnly);
+  const activeBg = isPremium ? "bg-premiumSoft text-premium" : "bg-brandSoft text-brand";
+  const idleHover = hoverBg
+    ? `text-sub ${hoverBg} hover:text-ink hover:translate-x-1`
+    : "text-sub hover:bg-chip hover:text-ink hover:translate-x-1";
 
   return (
     <Link
@@ -204,14 +253,10 @@ function SidebarLink({
       onClick={(e) => disabled && e.preventDefault()}
       className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all duration-150 ${
         active
-          ? isPremium
-            ? "bg-premiumSoft text-premium"
-            : "bg-brandSoft text-brand"
+          ? activeBg
           : disabled
             ? "text-mute cursor-not-allowed opacity-70"
-            : isPremium
-              ? "text-sub hover:bg-premiumSoft hover:text-premium hover:translate-x-1"
-              : "text-sub hover:bg-chip hover:text-ink hover:translate-x-1"
+            : idleHover
       }`}
     >
       <span className="text-sm transition-transform duration-150 group-hover:scale-110">
