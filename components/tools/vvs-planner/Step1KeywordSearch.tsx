@@ -1,12 +1,44 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ErrorWithHint from "@/components/ErrorWithHint";
 import { useWizard } from "./WizardContext";
 import VideoCard from "./VideoCard";
 import SessionHistory from "./SessionHistory";
 import RecentSearches from "./RecentSearches";
-import type { VideoResult } from "@/lib/tools/vvs-planner/types";
+import type {
+  ChannelSize,
+  Period,
+  SortBy,
+  VideoFormat,
+  VideoResult,
+} from "@/lib/tools/vvs-planner/types";
+
+const PERIOD_OPTS: { value: Period; label: string }[] = [
+  { value: "1w", label: "1주" },
+  { value: "1m", label: "1개월" },
+  { value: "3m", label: "3개월" },
+  { value: "6m", label: "6개월" },
+  { value: "1y", label: "1년" },
+  { value: "all", label: "전체" },
+];
+const FORMAT_OPTS: { value: VideoFormat; label: string }[] = [
+  { value: "long", label: "롱폼" },
+  { value: "shorts", label: "쇼츠" },
+  { value: "all", label: "전체" },
+];
+const SIZE_OPTS: { value: ChannelSize; label: string }[] = [
+  { value: "all", label: "전체" },
+  { value: "small", label: "소형" },
+  { value: "medium", label: "중형" },
+  { value: "large", label: "대형" },
+];
+const SORT_OPTS: { value: SortBy; label: string }[] = [
+  { value: "score", label: "종합" },
+  { value: "vvs", label: "VVS" },
+  { value: "views", label: "조회수" },
+  { value: "date", label: "최신" },
+];
 
 /**
  * Step 1 — 첫 화면.
@@ -18,6 +50,10 @@ export default function Step1KeywordSearch() {
     keyword,
     setKeyword,
     filters,
+    setPeriod,
+    setVideoFormat,
+    setChannelSize,
+    setSortBy,
     videos,
     setVideos,
     setSelectedVideo,
@@ -39,108 +75,130 @@ export default function Step1KeywordSearch() {
   const [personalKeywords, setPersonalKeywords] = useState<string[]>([]);
   const trendingFetched = useRef(false);
 
-  // 첫 진입 시:
-  //  - 최근 검색어 여러 개 있으면 각 키워드로 이번주 롱폼 병렬 검색 → 병합 스코어 순
-  //  - 없으면 KR mostPopular 롱폼 폴백
+  // 필터 반영해서 landing 재조회 (개인화 or 폴백 트렌딩)
+  const fetchLanding = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // 1) 최근 검색어 조회 (최대 3개)
+      let topKeywords: string[] = [];
+      try {
+        const hRes = await fetch("/api/tools/vvs-planner/search-history", {
+          cache: "no-store",
+        });
+        if (hRes.ok) {
+          const hData = (await hRes.json()) as {
+            history: { keyword: string }[];
+          };
+          topKeywords = (hData.history ?? [])
+            .map((h) => h.keyword?.trim())
+            .filter((k): k is string => !!k)
+            .slice(0, 3);
+        }
+      } catch {
+        /* ignore */
+      }
+
+      if (topKeywords.length > 0) {
+        // 개인화: 각 키워드로 병렬 검색 → 병합. 필터는 현재 선택된 값 사용.
+        const searchOne = (kw: string) =>
+          fetch("/api/tools/vvs-planner/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              keyword: kw,
+              period: filters.period,
+              videoFormat: filters.videoFormat,
+              sortBy: filters.sortBy,
+              channelSize: filters.channelSize,
+              minViews: 0,
+              minVvs: 0,
+              minEngagementRate: 0,
+              durationRange: "any",
+              captionsOnly: false,
+              excludeKeywords: "",
+              maxResults: 20,
+              deepSearch: false,
+              bypassCache: false,
+              internal: true, // 개인화 자동 fetch → 검색 기록 로깅 skip
+            }),
+          }).then(async (r) => {
+            if (!r.ok) return { videos: [] as VideoResult[], cached: false };
+            return (await r.json()) as {
+              videos: VideoResult[];
+              cached?: boolean;
+            };
+          });
+
+        const results = await Promise.all(topKeywords.map(searchOne));
+        const dedup = new Map<string, VideoResult>();
+        for (const r of results) {
+          for (const v of r.videos ?? []) {
+            const prev = dedup.get(v.videoId);
+            if (!prev || v.score > prev.score) dedup.set(v.videoId, v);
+          }
+        }
+        const sortFn = (a: VideoResult, b: VideoResult) => {
+          if (filters.sortBy === "vvs") return b.vvs - a.vvs;
+          if (filters.sortBy === "views") return b.viewCount - a.viewCount;
+          if (filters.sortBy === "date")
+            return Date.parse(b.publishedAt) - Date.parse(a.publishedAt);
+          return b.score - a.score;
+        };
+        const merged = [...dedup.values()].sort(sortFn).slice(0, 30);
+        const allCached = results.every((r) => r.cached);
+
+        setVideos(merged);
+        setWasCached(allCached);
+        setPersonalKeywords(topKeywords);
+        setMode("personalized");
+      } else {
+        // 폴백: KR mostPopular
+        const res = await fetch("/api/tools/vvs-planner/trending", {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          const d = await res.json();
+          throw new Error(d.error ?? "인기 영상을 불러오지 못했습니다.");
+        }
+        const data = (await res.json()) as { videos: VideoResult[] };
+        setVideos(data.videos);
+        setMode("trending");
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "인기 영상을 불러오지 못했습니다.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    filters.period,
+    filters.videoFormat,
+    filters.sortBy,
+    filters.channelSize,
+    setLoading,
+    setError,
+    setVideos,
+  ]);
+
+  // 첫 진입: keyword 없고 videos 없으면 landing 로드
   useEffect(() => {
     if (trendingFetched.current) return;
     if (videos.length > 0) return;
     if (keyword) return;
     trendingFetched.current = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // 1) 최근 검색어 조회 (최대 3개)
-        let topKeywords: string[] = [];
-        try {
-          const hRes = await fetch("/api/tools/vvs-planner/search-history", {
-            cache: "no-store",
-          });
-          if (hRes.ok) {
-            const hData = (await hRes.json()) as {
-              history: { keyword: string }[];
-            };
-            topKeywords = (hData.history ?? [])
-              .map((h) => h.keyword?.trim())
-              .filter((k): k is string => !!k)
-              .slice(0, 3);
-          }
-        } catch {
-          /* ignore */
-        }
-
-        if (topKeywords.length > 0) {
-          // 2a) 개인화: 각 키워드로 이번주 롱폼 병렬 검색 → 병합
-          const searchOne = (kw: string) =>
-            fetch("/api/tools/vvs-planner/search", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                keyword: kw,
-                period: "1w",
-                videoFormat: "long",
-                sortBy: "score",
-                channelSize: "all",
-                minViews: 0,
-                minVvs: 0,
-                minEngagementRate: 0,
-                durationRange: "any",
-                captionsOnly: false,
-                excludeKeywords: "",
-                maxResults: 20,
-                deepSearch: false,
-                bypassCache: false,
-              }),
-            }).then(async (r) => {
-              if (!r.ok) return { videos: [] as VideoResult[], cached: false };
-              return (await r.json()) as {
-                videos: VideoResult[];
-                cached?: boolean;
-              };
-            });
-
-          const results = await Promise.all(topKeywords.map(searchOne));
-          const dedup = new Map<string, VideoResult>();
-          for (const r of results) {
-            for (const v of r.videos ?? []) {
-              const prev = dedup.get(v.videoId);
-              // 중복 시 score 높은 것 유지
-              if (!prev || v.score > prev.score) dedup.set(v.videoId, v);
-            }
-          }
-          const merged = [...dedup.values()]
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 30);
-          const allCached = results.every((r) => r.cached);
-
-          setVideos(merged);
-          setWasCached(allCached);
-          setPersonalKeywords(topKeywords);
-          setMode("personalized");
-        } else {
-          // 2b) 폴백: KR mostPopular 롱폼
-          const res = await fetch("/api/tools/vvs-planner/trending", {
-            cache: "no-store",
-          });
-          if (!res.ok) {
-            const d = await res.json();
-            throw new Error(d.error ?? "인기 영상을 불러오지 못했습니다.");
-          }
-          const data = (await res.json()) as { videos: VideoResult[] };
-          setVideos(data.videos);
-          setMode("trending");
-        }
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "인기 영상을 불러오지 못했습니다.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    })();
+    void fetchLanding();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 필터 변경 시 refetch (mode에 따라)
+  useEffect(() => {
+    if (!trendingFetched.current) return;
+    if (mode === "search") return; // 검색 모드는 사용자가 검색 버튼 눌러야 반영
+    void fetchLanding();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.period, filters.videoFormat, filters.sortBy, filters.channelSize]);
 
   const runSearch = async (kw: string) => {
     const trimmed = kw.trim();
@@ -261,6 +319,34 @@ export default function Step1KeywordSearch() {
         </button>
       </div>
 
+      {/* 미니 필터 바 — 기간 / 영상 형식 / 구독자 규모 / 정렬 */}
+      <div className="mt-3 rounded-xl2 border border-line bg-surface p-3 shadow-card space-y-2">
+        <FilterRow
+          label="기간"
+          options={PERIOD_OPTS}
+          value={filters.period}
+          onChange={setPeriod}
+        />
+        <FilterRow
+          label="영상"
+          options={FORMAT_OPTS}
+          value={filters.videoFormat}
+          onChange={setVideoFormat}
+        />
+        <FilterRow
+          label="구독자"
+          options={SIZE_OPTS}
+          value={filters.channelSize}
+          onChange={setChannelSize}
+        />
+        <FilterRow
+          label="정렬"
+          options={SORT_OPTS}
+          value={filters.sortBy ?? "score"}
+          onChange={setSortBy}
+        />
+      </div>
+
       {error && (
         <div className="mt-4">
           <ErrorWithHint
@@ -342,6 +428,39 @@ export default function Step1KeywordSearch() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function FilterRow<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <p className="w-14 shrink-0 text-[11px] font-bold text-sub">{label}</p>
+      <div className="flex flex-wrap gap-1">
+        {options.map((o) => (
+          <button
+            key={String(o.value)}
+            onClick={() => onChange(o.value)}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+              value === o.value
+                ? "bg-brand text-white"
+                : "bg-chip text-sub hover:bg-line hover:text-ink"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

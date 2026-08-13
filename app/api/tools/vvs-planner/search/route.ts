@@ -24,6 +24,7 @@ type Body = {
   videoFormat?: VideoFormat;
   deepSearch?: boolean;
   bypassCache?: boolean;
+  internal?: boolean; // true면 vvs_search_history 로깅 skip (개인화 자동 fetch 용)
   // v3 강화 필터
   minVvs?: number;
   minEngagementRate?: number;
@@ -74,18 +75,22 @@ export async function POST(req: NextRequest) {
     maxResults: body.maxResults,
   };
 
-  // ─── 검색 기록 로깅 (fire-and-forget, 실패해도 무시) ───
-  void supabase
-    .from("vvs_search_history")
-    .insert({
-      user_id: user.id,
-      keyword,
-      filters,
-      cached: false, // 아래 실제 결과 나오면 최신 record가 update되진 않음 (append-only)
-    })
-    .then(({ error }) => {
-      if (error) console.warn("[search-history] insert:", error.message);
-    });
+  // ─── 검색 기록 로깅 (사용자 명시적 검색만) ───
+  // internal=true 이면 skip — 개인화 트렌딩 등 자동 fetch 는 기록 X
+  const isInternal = body.internal === true;
+  if (!isInternal) {
+    void supabase
+      .from("vvs_search_history")
+      .insert({
+        user_id: user.id,
+        keyword,
+        filters,
+        cached: false,
+      })
+      .then(({ error }) => {
+        if (error) console.warn("[search-history] insert:", error.message);
+      });
+  }
 
   // ─── 캐시 조회 (24h TTL) ─────────────────────────
   const cacheKey = buildCacheKey(keyword, filters);
