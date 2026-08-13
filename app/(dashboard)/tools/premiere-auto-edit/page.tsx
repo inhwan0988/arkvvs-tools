@@ -92,7 +92,7 @@ export default async function PremiereAutoEditPage() {
           />
           <DownloadCard
             title="Mac (Intel)"
-            subtitle="2020 이전 Mac"
+            subtitle="Intel x64 Mac"
             href={DOWNLOADS.macIntel.url}
             ext=".dmg"
           />
