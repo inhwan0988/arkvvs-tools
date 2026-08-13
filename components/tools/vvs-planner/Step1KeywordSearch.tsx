@@ -33,31 +33,87 @@ export default function Step1KeywordSearch() {
   const [input, setInput] = useState(keyword);
   const [wasCached, setWasCached] = useState(false);
   const [historyReload, setHistoryReload] = useState(0);
-  const [mode, setMode] = useState<"trending" | "search">(
+  const [mode, setMode] = useState<"trending" | "personalized" | "search">(
     keyword ? "search" : "trending",
   );
+  const [personalKeyword, setPersonalKeyword] = useState<string | null>(null);
   const trendingFetched = useRef(false);
 
-  // 첫 진입 시 이번주 인기 영상 자동 로드 (검색 결과 없을 때만)
+  // 첫 진입 시:
+  //  - 최근 검색어 있으면 그 키워드로 이번주 롱폼 인기 영상 (개인화)
+  //  - 없으면 KR mostPopular 롱폼 폴백
   useEffect(() => {
     if (trendingFetched.current) return;
-    if (videos.length > 0) return; // 이미 이전 세션 결과 있으면 skip
-    if (keyword) return; // 복원된 세션에 keyword 있으면 skip
+    if (videos.length > 0) return;
+    if (keyword) return;
     trendingFetched.current = true;
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/tools/vvs-planner/trending", {
-          cache: "no-store",
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          throw new Error(d.error ?? "인기 영상을 불러오지 못했습니다.");
+        // 1) 최근 검색어 조회 (실패해도 폴백 있으니 조용히)
+        let topKeyword: string | null = null;
+        try {
+          const hRes = await fetch("/api/tools/vvs-planner/search-history", {
+            cache: "no-store",
+          });
+          if (hRes.ok) {
+            const hData = (await hRes.json()) as {
+              history: { keyword: string }[];
+            };
+            topKeyword = hData.history?.[0]?.keyword?.trim() || null;
+          }
+        } catch {
+          /* ignore */
         }
-        const data = (await res.json()) as { videos: VideoResult[] };
-        setVideos(data.videos);
-        setMode("trending");
+
+        if (topKeyword) {
+          // 2a) 개인화: 최신 검색어로 이번주 롱폼 검색
+          const res = await fetch("/api/tools/vvs-planner/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              keyword: topKeyword,
+              period: "1w",
+              videoFormat: "long",
+              sortBy: "score",
+              channelSize: "all",
+              minViews: 0,
+              minVvs: 0,
+              minEngagementRate: 0,
+              durationRange: "any",
+              captionsOnly: false,
+              excludeKeywords: "",
+              maxResults: 20,
+              deepSearch: false,
+              bypassCache: false,
+            }),
+          });
+          if (!res.ok) {
+            const d = await res.json();
+            throw new Error(d.error ?? "인기 영상을 불러오지 못했습니다.");
+          }
+          const data = (await res.json()) as {
+            videos: VideoResult[];
+            cached?: boolean;
+          };
+          setVideos(data.videos);
+          setWasCached(!!data.cached);
+          setPersonalKeyword(topKeyword);
+          setMode("personalized");
+        } else {
+          // 2b) 폴백: KR mostPopular 롱폼
+          const res = await fetch("/api/tools/vvs-planner/trending", {
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            const d = await res.json();
+            throw new Error(d.error ?? "인기 영상을 불러오지 못했습니다.");
+          }
+          const data = (await res.json()) as { videos: VideoResult[] };
+          setVideos(data.videos);
+          setMode("trending");
+        }
       } catch (e) {
         setError(
           e instanceof Error ? e.message : "인기 영상을 불러오지 못했습니다.",
@@ -221,11 +277,26 @@ export default function Step1KeywordSearch() {
         <>
           <div className="mt-6 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm text-sub">
-              {mode === "trending" ? (
+              {mode === "personalized" && personalKeyword ? (
+                <>
+                  🔥 <strong className="text-ink">이번주 인기 영상</strong>{" "}
+                  <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-brandSoft px-2 py-0.5 text-[11px] font-bold text-brand">
+                    #{personalKeyword}
+                  </span>
+                  <span className="ml-1 text-mute">
+                    · 최근 검색어 기반 · 롱폼 {videos.length}개
+                  </span>
+                  {wasCached && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-successSoft px-2 py-0.5 text-[11px] font-bold text-success">
+                      ⚡ 캐시
+                    </span>
+                  )}
+                </>
+              ) : mode === "trending" ? (
                 <>
                   🔥 <strong className="text-ink">이번주 인기 영상</strong>{" "}
                   <span className="text-mute">
-                    · VVS 종합점수 순 상위 {videos.length}개
+                    · 롱폼 · VVS 종합점수 순 상위 {videos.length}개
                   </span>
                 </>
               ) : (
